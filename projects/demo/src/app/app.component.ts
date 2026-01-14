@@ -3,16 +3,24 @@ import { NgxJsonEditorModule } from '../../../ngx-json-editor/src/lib/ngx-json-e
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [CommonModule, NgxJsonEditorModule],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+	selector: 'app-root',
+	standalone: true,
+	imports: [CommonModule, NgxJsonEditorModule],
+	templateUrl: './app.component.html',
+	styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  data = `{"name": "Ronny"}`;
+	data = `{
+    "name": "Ronny",
+    "role": "Developer",
+    "skills": ["Angular", "TypeScript", "SCSS"],
+    "settings": {
+      "theme": "dark",
+      "notifications": true
+    }
+  }`;
 
-  onJsonChange(newJson: any) {
-    console.log('Nuevo JSON:', newJson);
-  }
+	onJsonChange(newJson: any) {
+		console.log('Nuevo JSON:', newJson);
+	}
 }

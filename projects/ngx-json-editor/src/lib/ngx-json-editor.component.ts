@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input } from '@angular/core';
 import { JsonSearchComponent } from './json-search/json-search.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
@@ -16,15 +16,11 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 	@ViewChild('highlightOverlay') highlightOverlay?: ElementRef<HTMLDivElement>;
 	@ViewChild(JsonSearchComponent) jsonSearchComponent?: JsonSearchComponent;
 
-	initialValue = `{
-		"example": "value",
-		"number": 42,
-		"array": [1, 2, 3]
-	}`;
+	@Input() initialValue: string = '';
 	placeholder = 'Ingresa tu JSON aquí...';
 	fontMono = 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace';
 
-	jsonText: string = this.initialValue;
+	jsonText: string = '';
 	isValid: boolean = true;
 	error: string | null = null;
 	searchTerm: string = '';
@@ -36,6 +32,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 	constructor(private sanitizer: DomSanitizer) { }
 
 	ngOnInit() {
+		this.jsonText = this.initialValue;
 		this.validateJson(this.jsonText);
 	}
 

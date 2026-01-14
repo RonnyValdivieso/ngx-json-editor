@@ -24,6 +24,7 @@ describe('NgxJsonEditorComponent', () => {
 
 		fixture = TestBed.createComponent(NgxJsonEditorComponent);
 		component = fixture.componentInstance;
+		component.initialValue = '{"key": "value"}';
 		fixture.detectChanges();
 	});
 
@@ -79,49 +80,56 @@ describe('NgxJsonEditorComponent', () => {
 		expect(inactiveMatches?.length).toBe(2);
 	});
 
-	it('should sync scroll from textarea to overlay', () => {
+	it('should sync scroll from textarea to overlay', (done) => {
 		// Attach to body to ensure layout and scroll works
 		document.body.appendChild(fixture.nativeElement);
 
 		component.showSearch = true;
 		component.searchTerm = 'key';
-		// Set large content to ensure scrolling is possible (scrollHeight > clientHeight)
-		component.jsonText = JSON.stringify(Array.from({ length: 100 }, (_, i) => ({ key: `value ${i}` })), null, 2);
+		// Set large content to ensure scrolling is possible
+		const largeJson = JSON.stringify(Array.from({ length: 100 }, (_, i) => ({ key: `value ${i}` })), null, 2);
+
+		// Set input and trigger change
+		component.initialValue = largeJson;
+		component.ngOnInit(); // Re-run init to set jsonText
 		fixture.detectChanges();
 
 		// Mock elements
 		const textarea = component.jsonArea.nativeElement;
-		// We need to ensure highlightOverlay is set. In test env it might not be rendered unless showSearch is true (it is)
-		// and change detection ran (it did).
 		const overlay = component.highlightOverlay?.nativeElement;
 
 		expect(overlay).toBeDefined();
-		if (!overlay) return;
+		if (!overlay) {
+			document.body.removeChild(fixture.nativeElement);
+			done();
+			return;
+		}
 
-		// Force styles to ensure scrolling works despite test env CSS issues
+		// Force styles
 		textarea.style.height = '100px';
 		textarea.style.display = 'block';
 		overlay.style.height = '100px';
 		overlay.style.display = 'block';
 
-		// Simulate scroll on textarea
-		textarea.scrollTop = 100;
-		// Ensure horizontal scroll is possible by keeping lines short or forcing wrap off
-		// But in this test, let's just focus on vertical if horizontal is tricky with current content
-		// or make content wider
+		// Allow layout to settle
+		setTimeout(() => {
+			// Simulate scroll on textarea
+			textarea.scrollTop = 100;
 
-		// Verify textarea accepted some scroll
-		expect(textarea.scrollTop).toBeGreaterThan(0);
+			// Verify textarea accepted some scroll
+			expect(textarea.scrollTop).toBeGreaterThan(0);
 
-		// Trigger sync
-		component.syncScroll();
+			// Trigger sync
+			component.syncScroll();
 
-		// Expect overlay to match textarea (whatever the browser allowed)
-		expect(overlay.scrollTop).toBe(textarea.scrollTop);
-		expect(overlay.scrollLeft).toBe(textarea.scrollLeft);
+			// Expect overlay to match
+			expect(overlay.scrollTop).toBe(textarea.scrollTop);
+			expect(overlay.scrollLeft).toBe(textarea.scrollLeft);
 
-		// Cleanup
-		document.body.removeChild(fixture.nativeElement);
+			// Cleanup
+			document.body.removeChild(fixture.nativeElement);
+			done();
+		}, 100);
 	});
 
 	it('should toggle search visibility when toggleSearch is called', () => {
