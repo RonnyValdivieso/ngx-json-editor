@@ -11,6 +11,11 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+    "paths": {
+      "ngx-json-editor": [
+        "./dist/ngx-json-editor"
+      ]
+    },
     "esModuleInterop": true,
     "sourceMap": true,
     "declaration": false,
