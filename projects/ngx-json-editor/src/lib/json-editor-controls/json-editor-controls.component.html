@@ -1,0 +1,41 @@
+<div class="flex flex-wrap gap-2 controls">
+	@if (config?.buttons?.format !== false) {
+	<button class="btn btn-outline btn-sm" (click)="format.emit()">Formatear</button>
+	}
+	@if (config?.buttons?.minify !== false) {
+	<button class="btn btn-outline btn-sm" (click)="minify.emit()">Minificar</button>
+	}
+	@if (config?.buttons?.sort !== false) {
+	<button class="btn btn-outline btn-sm" (click)="sort.emit()">
+		<span class="icon-arrow-up-down mr-1"></span>Ordenar Keys
+	</button>
+	}
+	@if (config?.buttons?.search !== false) {
+	<button class="btn btn-outline btn-sm" (click)="toggleSearch.emit()">
+		<span class="icon-search mr-1"></span>Buscar
+	</button>
+	}
+	@if (config?.buttons?.copy !== false) {
+	<button class="btn btn-outline btn-sm" (click)="copy.emit()">
+		<span class="icon-copy mr-1"></span>Copiar
+	</button>
+	}
+	@if (config?.buttons?.download !== false) {
+	<button class="btn btn-outline btn-sm" (click)="download.emit()">
+		<span class="icon-download mr-1"></span>Descargar
+	</button>
+	}
+	@if (config?.buttons?.reset !== false) {
+	<button class="btn btn-outline btn-sm" (click)="reset.emit()">
+		<span class="icon-rotate-ccw mr-1"></span>Reiniciar
+	</button>
+	}
+	@if (config?.buttons?.load !== false) {
+	<label class="cursor-pointer upload-label">
+		<span class="btn btn-outline btn-sm">
+			<span class="icon-upload mr-1"></span>Cargar
+		</span>
+		<input type="file" accept=".json,application/json" (change)="load.emit($event)" class="hidden" />
+	</label>
+	}
+</div>

@@ -1,13 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
 import { JsonSearchComponent } from './json-search/json-search.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { JsonEditorControlsComponent } from './json-editor-controls/json-editor-controls.component';
+import { JsonEditorConfig } from './models/json-editor-config';
 
 @Component({
 	selector: 'ngx-json-editor',
 	standalone: true,
-	imports: [CommonModule, FormsModule, JsonSearchComponent],
+	imports: [CommonModule, FormsModule, JsonSearchComponent, JsonEditorControlsComponent],
 	templateUrl: './ngx-json-editor.component.html',
 	styleUrls: ['./ngx-json-editor.component.scss']
 })
@@ -17,6 +19,8 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 	@ViewChild(JsonSearchComponent) jsonSearchComponent?: JsonSearchComponent;
 
 	@Input() initialValue: string = '';
+	@Input() config?: JsonEditorConfig;
+	@Output() errorChange = new EventEmitter<string | null>();
 	placeholder = 'Ingresa tu JSON aquí...';
 	fontMono = 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace';
 
@@ -57,16 +61,19 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		if (!text.trim()) {
 			this.isValid = true;
 			this.error = null;
+			this.errorChange.emit(null);
 			return true;
 		}
 		try {
 			JSON.parse(text);
 			this.isValid = true;
 			this.error = null;
+			this.errorChange.emit(null);
 			return true;
 		} catch (err: any) {
 			this.isValid = false;
 			this.error = err.message || 'JSON inválido';
+			this.errorChange.emit(this.error);
 			return false;
 		}
 	}
@@ -84,9 +91,11 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.jsonText = formatted;
 			this.isValid = true;
 			this.error = null;
+			this.errorChange.emit(null);
 		} catch {
 			this.error = 'El JSON contiene errores de sintaxis';
 			this.isValid = false;
+			this.errorChange.emit(this.error);
 		}
 	}
 
@@ -98,9 +107,11 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.jsonText = minified;
 			this.isValid = true;
 			this.error = null;
+			this.errorChange.emit(null);
 		} catch {
 			this.error = 'El JSON contiene errores de sintaxis';
 			this.isValid = false;
+			this.errorChange.emit(this.error);
 		}
 	}
 
@@ -177,9 +188,11 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.jsonText = formatted;
 			this.isValid = true;
 			this.error = null;
+			this.errorChange.emit(null);
 		} catch {
 			this.error = 'El JSON contiene errores de sintaxis';
 			this.isValid = false;
+			this.errorChange.emit(this.error);
 		}
 	}
 

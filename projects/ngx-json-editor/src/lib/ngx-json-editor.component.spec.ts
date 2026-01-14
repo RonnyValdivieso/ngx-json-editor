@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DomSanitizer } from '@angular/platform-browser';
 
 import { NgxJsonEditorComponent } from './ngx-json-editor.component';
+import { JsonEditorControlsComponent } from './json-editor-controls/json-editor-controls.component';
 
 describe('NgxJsonEditorComponent', () => {
 	let component: NgxJsonEditorComponent;
@@ -9,7 +10,7 @@ describe('NgxJsonEditorComponent', () => {
 
 	beforeEach(async () => {
 		await TestBed.configureTestingModule({
-			imports: [NgxJsonEditorComponent],
+			imports: [NgxJsonEditorComponent, JsonEditorControlsComponent],
 			providers: [
 				{
 					provide: DomSanitizer,
@@ -143,5 +144,23 @@ describe('NgxJsonEditorComponent', () => {
 		// Toggle OFF
 		component.toggleSearch();
 		expect(component.showSearch).toBeFalse();
+	});
+
+	it('should hide buttons based on config', () => {
+		component.config = {
+			buttons: {
+				format: false
+			}
+		};
+		fixture.detectChanges();
+
+		// Check integration: Ensure controls component wraps buttons
+		const controls = fixture.nativeElement.querySelector('ngx-json-editor-controls');
+		expect(controls).toBeTruthy();
+
+		// Verify button absence inside the child component
+		const buttons = controls.querySelectorAll('button');
+		const hasFormat = Array.from(buttons).some((b: any) => b.textContent.includes('Formatear'));
+		expect(hasFormat).toBeFalse();
 	});
 });

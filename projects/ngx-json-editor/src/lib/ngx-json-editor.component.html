@@ -7,31 +7,11 @@
 					}}</span>
 			</div>
 		</div>
-		<div class="flex flex-wrap gap-2 controls">
-			<button class="btn btn-outline btn-sm" (click)="formatJson()">Formatear</button>
-			<button class="btn btn-outline btn-sm" (click)="minifyJson()">Minificar</button>
-			<button class="btn btn-outline btn-sm" (click)="sortKeysAlphabetically()">
-				<span class="icon-arrow-up-down mr-1"></span>Ordenar Keys
-			</button>
-			<button class="btn btn-outline btn-sm" (click)="toggleSearch()">
-				<span class="icon-search mr-1"></span>Buscar
-			</button>
-			<button class="btn btn-outline btn-sm" (click)="copyToClipboard()">
-				<span class="icon-copy mr-1"></span>Copiar
-			</button>
-			<button class="btn btn-outline btn-sm" (click)="downloadJson()">
-				<span class="icon-download mr-1"></span>Descargar
-			</button>
-			<button class="btn btn-outline btn-sm" (click)="resetEditor()">
-				<span class="icon-rotate-ccw mr-1"></span>Reiniciar
-			</button>
-			<label class="cursor-pointer upload-label">
-				<span class="btn btn-outline btn-sm">
-					<span class="icon-upload mr-1"></span>Cargar
-				</span>
-				<input type="file" accept=".json,application/json" (change)="handleFileUpload($event)" class="hidden" />
-			</label>
-		</div>
+		<ngx-json-editor-controls [config]="config" (format)="formatJson()" (minify)="minifyJson()"
+															(sort)="sortKeysAlphabetically()" (toggleSearch)="toggleSearch()"
+															(copy)="copyToClipboard()" (download)="downloadJson()" (reset)="resetEditor()"
+															(load)="handleFileUpload($event)">
+		</ngx-json-editor-controls>
 		<ngx-json-search [show]="showSearch" [searchTerm]="searchTerm" [totalMatches]="totalMatches"
 										 [currentMatchIndex]="currentMatchIndex" (searchTermChange)="onSearchTermChange($event)"
 										 (next)="goToNextMatch()" (prev)="goToPreviousMatch()" (close)="closeSearch()"></ngx-json-search>

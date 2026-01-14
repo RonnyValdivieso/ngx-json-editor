@@ -1,0 +1,55 @@
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.btn {
+  border: none;
+  background: none;
+  padding: 0.5em 1em;
+  border-radius: 8px;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-outline {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.btn-sm {
+  font-size: 0.85em;
+  padding: 0.25em 0.75em;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #222;
+}
+
+.upload-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.upload-label .btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+.icon-arrow-up-down,
+.icon-search,
+.icon-copy,
+.icon-download,
+.icon-rotate-ccw,
+.icon-upload {
+  margin-right: 0.25em;
+}
+
+.hidden {
+  display: none;
+}

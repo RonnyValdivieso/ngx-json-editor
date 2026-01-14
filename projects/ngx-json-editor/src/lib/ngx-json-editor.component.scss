@@ -52,44 +52,11 @@
 }
 
 /* Increase spacing between title and controls */
-.card-header .controls {
+.card-header ::ng-deep ngx-json-editor-controls {
   margin-top: 0.75rem;
+  display: block;
 }
 
-/* Ensure upload label aligns like a button */
-.upload-label {
-  display: inline-flex;
-  align-items: center;
-}
-
-.upload-label .btn {
-  display: inline-flex;
-  align-items: center;
-}
-.btn {
-  border: none;
-  background: none;
-  padding: 0.5em 1em;
-  border-radius: 8px;
-  font-size: 0.95em;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-outline {
-  border: 1px solid #e5e7eb;
-  background: #fff;
-}
-.btn-sm {
-  font-size: 0.85em;
-  padding: 0.25em 0.75em;
-}
-.btn-ghost {
-  background: transparent;
-  color: #222;
-}
-.mr-1 {
-  margin-right: 0.25em;
-}
 .h-8 {
   height: 2rem;
 }
@@ -98,9 +65,6 @@
   border-radius: 8px;
   padding: 0.25em 0.75em;
   font-size: 0.95em;
-}
-.bg-muted {
-  background: #f3f4f6;
 }
 .rounded-md {
   border-radius: 8px;
