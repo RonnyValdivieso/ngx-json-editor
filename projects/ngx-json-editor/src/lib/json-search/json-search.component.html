@@ -1,0 +1,19 @@
+<div *ngIf="show" class="search-box flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
+  <span class="icon-search">
+		<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+		  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+		</svg>
+	</span>
+  <input #searchInput type="text" [(ngModel)]="searchTerm" (ngModelChange)="searchTermChange.emit($event)" (keydown)="onKeyDown($event)" placeholder="Buscar en JSON... (Enter: siguiente, Shift+Enter: anterior, Esc: cerrar)" class="flex-1 h-9 input" />
+
+  <div *ngIf="totalMatches > 0" class="flex items-center gap-1">
+    <button class="btn btn-ghost btn-sm h-8 w-8 p-0" title="Anterior (Shift+Enter)" (click)="prev.emit()">▲</button>
+    <button class="btn btn-ghost btn-sm h-8 w-8 p-0" title="Siguiente (Enter)" (click)="next.emit()">▼</button>
+  </div>
+
+  <div class="text-xs text-muted-foreground whitespace-nowrap min-w-fit">
+    {{ searchTerm ? (totalMatches > 0 ? (currentMatchIndex + 1) + ' de ' + totalMatches : 'Sin resultados') : 'Ctrl+F' }}
+  </div>
+
+  <button class="btn btn-ghost btn-sm h-8 w-8 p-0" (click)="close.emit()">✕</button>
+</div>

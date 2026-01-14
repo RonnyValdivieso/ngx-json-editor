@@ -1,0 +1,202 @@
+
+/* Card styles */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid #e5e7eb;
+  padding: 0;
+}
+.card-header {
+  padding: 1rem 1.5rem 0.5rem 1.5rem;
+  border-bottom: none;
+}
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.badge {
+  padding: 0.25em 0.75em;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 500;
+  background: #222;
+  color: #fff;
+  position: relative;
+}
+.badge-default {
+  background: #222;
+  color: #fff;
+}
+.badge-destructive {
+  background: #e53e3e;
+  color: #fff;
+}
+.card-content {
+  padding: 0 1.5rem 1rem 1.5rem;
+}
+.flex {
+  display: flex;
+}
+.items-center {
+  align-items: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+/* Increase spacing between title and controls */
+.card-header .controls {
+  margin-top: 0.75rem;
+}
+
+/* Ensure upload label aligns like a button */
+.upload-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.upload-label .btn {
+  display: inline-flex;
+  align-items: center;
+}
+.btn {
+  border: none;
+  background: none;
+  padding: 0.5em 1em;
+  border-radius: 8px;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-outline {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+.btn-sm {
+  font-size: 0.85em;
+  padding: 0.25em 0.75em;
+}
+.btn-ghost {
+  background: transparent;
+  color: #222;
+}
+.mr-1 {
+  margin-right: 0.25em;
+}
+.h-8 {
+  height: 2rem;
+}
+.input {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.25em 0.75em;
+  font-size: 0.95em;
+}
+.bg-muted {
+  background: #f3f4f6;
+}
+.rounded-md {
+  border-radius: 8px;
+}
+.space-y-3 > * + * {
+  margin-top: 1rem;
+}
+.bg-background {
+  background: #fff;
+}
+.border {
+  border: 1px solid #e5e7eb;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+.text-sm {
+  font-size: 0.95em;
+}
+.resize-none {
+  resize: none;
+}
+.focus\:outline-none:focus {
+  outline: none;
+}
+.focus\:ring-2:focus {
+  box-shadow: 0 0 0 2px #6366f1;
+}
+.focus\:ring-ring:focus {
+  border-color: #6366f1;
+}
+.relative {
+  position: relative;
+}
+.w-full {
+  width: 100%;
+}
+.h-96 {
+  height: 24rem;
+}
+.text-foreground {
+  color: #222;
+}
+.bg-destructive-5 {
+  background: #ffe5e5;
+}
+.text-muted-foreground {
+  color: #6b7280;
+}
+.absolute {
+  position: absolute;
+}
+.inset-0 {
+  top: 0; left: 0; right: 0; bottom: 0;
+}
+.pointer-events-none {
+  pointer-events: none;
+}
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+.break-words {
+  word-break: break-word;
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.z-10 {
+  z-index: 10;
+}
+.z-5 {
+  z-index: 5;
+}
+.text-xs {
+  font-size: 0.8em;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.hidden {
+  display: none;
+}
+
+/* Unified styles for textarea and overlay */
+.editor-layer {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 1rem; /* Ensure explicit padding */
+  border: none;
+  width: 100%;
+  height: 24rem;
+  box-sizing: border-box;
+  margin: 0;
+  display: block;
+}

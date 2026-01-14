@@ -1,114 +1,292 @@
-import { Component, effect, Input, output, signal, WritableSignal } from '@angular/core';
-import { parseJson, formatJson } from 'json-editor-core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { JsonSearchComponent } from './json-search/json-search.component';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
 	selector: 'ngx-json-editor',
 	standalone: true,
-	imports: [],
-	template: `
-    <div class="editor-container">
-      <textarea
-				rows="12"
-        cols="50"
-        [value]="jsonText()"
-        (input)="onChange()"
-      ></textarea>
-
-      <div class="actions">
-        <button type="button" (click)="copy()">Copiar</button>
-        <button type="button" (click)="download()">Descargar</button>
-        <button type="button" (click)="reset()">Reiniciar</button>
-        <input type="file" (change)="loadFile($event)" />
-      </div>
-
-      @if(error()) {
-        <div class="error">⚠️ Error: {{ error() }}</div>
-      }
-    </div>
-  `,
-	styles: `
-		.editor-container {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      font-family: monospace;
-    }
-    textarea {
-      padding: 0.5rem;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-family: monospace;
-    }
-    .actions {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-    .error {
-      color: red;
-      font-weight: bold;
-    }
-	`
+	imports: [CommonModule, FormsModule, JsonSearchComponent],
+	templateUrl: './ngx-json-editor.component.html',
+	styleUrls: ['./ngx-json-editor.component.scss']
 })
-export class NgxJsonEditorComponent {
-	/** Valor inicial (JSON válido como string) */
-	@Input({ required: false }) initialValue = `{\n  "hello": "world"\n}`;
+export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
+	@ViewChild('jsonArea') jsonArea!: ElementRef<HTMLTextAreaElement>;
+	@ViewChild('highlightOverlay') highlightOverlay?: ElementRef<HTMLDivElement>;
+	@ViewChild(JsonSearchComponent) jsonSearchComponent?: JsonSearchComponent;
 
-	/** Evento de salida (emite el objeto JSON ya parseado) */
-	jsonChange = output<any>();
+	initialValue = `{
+		"example": "value",
+		"number": 42,
+		"array": [1, 2, 3]
+	}`;
+	placeholder = 'Ingresa tu JSON aquí...';
+	fontMono = 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace';
 
-	/** Estado interno con signals */
-	jsonText: WritableSignal<string> = signal(this.initialValue);
-	error = signal<string | null>(null);
+	jsonText: string = this.initialValue;
+	isValid: boolean = true;
+	error: string | null = null;
+	searchTerm: string = '';
+	showSearch: boolean = false;
+	totalMatches: number = 0;
+	currentMatchIndex: number = 0;
+	private matchPositions: Array<{ start: number; end: number }> = [];
 
-	constructor() {
-		// Efecto reactivo: cada vez que cambia el texto, intentamos parsear
-		effect(() => {
-			const parsed = parseJson(this.jsonText());
-			if (parsed) {
-				this.error.set(null);
-				this.jsonChange.emit(parsed);
-			} else {
-				this.error.set('JSON inválido');
-			}
-		});
+	constructor(private sanitizer: DomSanitizer) { }
+
+	ngOnInit() {
+		this.validateJson(this.jsonText);
 	}
 
-	onChange() {
-		// ya está controlado por el effect()
+	ngAfterViewInit(): void {
+		window.addEventListener('keydown', this.onGlobalKeydown);
 	}
 
-	copy() {
-		navigator.clipboard.writeText(this.jsonText());
+	ngOnDestroy(): void {
+		window.removeEventListener('keydown', this.onGlobalKeydown);
 	}
 
-	download() {
-		const blob = new Blob([this.jsonText()], { type: 'application/json' });
+	private onGlobalKeydown = (e: KeyboardEvent) => {
+		const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+		const isMod = isMac ? e.metaKey : e.ctrlKey;
+		if (isMod && e.key.toLowerCase() === 'f') {
+			e.preventDefault();
+			this.showSearch = true;
+			setTimeout(() => {
+				this.jsonSearchComponent?.focus();
+			}, 0);
+		}
+	};
+
+	validateJson(text: string): boolean {
+		if (!text.trim()) {
+			this.isValid = true;
+			this.error = null;
+			return true;
+		}
+		try {
+			JSON.parse(text);
+			this.isValid = true;
+			this.error = null;
+			return true;
+		} catch (err: any) {
+			this.isValid = false;
+			this.error = err.message || 'JSON inválido';
+			return false;
+		}
+	}
+
+	onJsonTextChange(value: string) {
+		this.jsonText = value;
+		this.validateJson(value);
+	}
+
+	formatJson() {
+		if (!this.jsonText.trim()) return;
+		try {
+			const parsed = JSON.parse(this.jsonText);
+			const formatted = JSON.stringify(parsed, null, 2);
+			this.jsonText = formatted;
+			this.isValid = true;
+			this.error = null;
+		} catch {
+			this.error = 'El JSON contiene errores de sintaxis';
+			this.isValid = false;
+		}
+	}
+
+	minifyJson() {
+		if (!this.jsonText.trim()) return;
+		try {
+			const parsed = JSON.parse(this.jsonText);
+			const minified = JSON.stringify(parsed);
+			this.jsonText = minified;
+			this.isValid = true;
+			this.error = null;
+		} catch {
+			this.error = 'El JSON contiene errores de sintaxis';
+			this.isValid = false;
+		}
+	}
+
+	copyToClipboard() {
+		navigator.clipboard.writeText(this.jsonText);
+	}
+
+	downloadJson() {
+		const blob = new Blob([this.jsonText], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
 		a.download = 'data.json';
+		document.body.appendChild(a);
 		a.click();
+		document.body.removeChild(a);
 		URL.revokeObjectURL(url);
 	}
 
-	reset() {
-		this.jsonText.set(this.initialValue);
-	}
-
-	loadFile(event: Event) {
-		const file = (event.target as HTMLInputElement).files?.[0];
+	handleFileUpload(event: any) {
+		const file = event.target.files?.[0];
 		if (!file) return;
-
 		const reader = new FileReader();
-		reader.onload = (e) => {
-			const text = e.target?.result as string;
-			if (parseJson(text)) {
-				this.jsonText.set(formatJson(text)!);
-			} else {
-				this.error.set('Archivo inválido');
-			}
+		reader.onload = (e: any) => {
+			const content = e.target?.result as string;
+			this.jsonText = content;
+			this.validateJson(content);
 		};
 		reader.readAsText(file);
+		event.target.value = '';
+	}
+
+	resetEditor() {
+		this.jsonText = this.initialValue;
+		this.isValid = true;
+		this.error = null;
+	}
+
+	handleKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Tab') {
+			event.preventDefault();
+			const textarea = this.jsonArea?.nativeElement;
+			if (!textarea) return;
+			const start = textarea.selectionStart;
+			const end = textarea.selectionEnd;
+			const newValue = this.jsonText.substring(0, start) + '  ' + this.jsonText.substring(end);
+			this.jsonText = newValue;
+			this.validateJson(newValue);
+			setTimeout(() => {
+				textarea.selectionStart = textarea.selectionEnd = start + 2;
+			}, 0);
+		}
+	}
+
+	sortKeysAlphabetically() {
+		if (!this.jsonText.trim()) return;
+		try {
+			const parsed = JSON.parse(this.jsonText);
+			const sortObjectKeys = (obj: any): any => {
+				if (Array.isArray(obj)) {
+					return obj.map(sortObjectKeys);
+				} else if (obj !== null && typeof obj === 'object') {
+					const sortedKeys = Object.keys(obj).sort();
+					const sortedObj: any = {};
+					sortedKeys.forEach((key) => {
+						sortedObj[key] = sortObjectKeys(obj[key]);
+					});
+					return sortedObj;
+				}
+				return obj;
+			};
+			const sortedJson = sortObjectKeys(parsed);
+			const formatted = JSON.stringify(sortedJson, null, 2);
+			this.jsonText = formatted;
+			this.isValid = true;
+			this.error = null;
+		} catch {
+			this.error = 'El JSON contiene errores de sintaxis';
+			this.isValid = false;
+		}
+	}
+
+	highlightSearchTerm(text: string, term: string, activeIndex: number = -1): SafeHtml {
+		if (!term) return this.sanitizer.bypassSecurityTrustHtml(text);
+		const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, 'gi');
+		let count = 0;
+		const html = text.replace(regex, (match) => {
+			const isActive = count === activeIndex;
+			count++;
+			// Use inline styles to ensure visibility
+			const style = isActive
+				? 'background-color: #f97316; color: white; border-radius: 2px;' // Orange
+				: 'background-color: #fde047; color: black; border-radius: 2px;'; // Yellow
+			return `<span style="${style}">${match}</span>`;
+		});
+		return this.sanitizer.bypassSecurityTrustHtml(html);
+	}
+
+	toggleSearch() {
+		this.showSearch = !this.showSearch;
+		if (!this.showSearch) {
+			this.searchTerm = '';
+			this.totalMatches = 0;
+			this.currentMatchIndex = 0;
+			this.matchPositions = [];
+		} else {
+			// focus later when component is ready
+			setTimeout(() => this.jsonArea?.nativeElement?.focus(), 0);
+			// Sync scroll initially
+			setTimeout(() => this.syncScroll(), 0);
+		}
+	}
+
+	syncScroll(event?: Event) {
+		if (this.highlightOverlay && this.jsonArea) {
+			this.highlightOverlay.nativeElement.scrollTop = this.jsonArea.nativeElement.scrollTop;
+			this.highlightOverlay.nativeElement.scrollLeft = this.jsonArea.nativeElement.scrollLeft;
+		}
+	}
+
+	closeSearch() {
+		this.showSearch = false;
+		this.searchTerm = '';
+	}
+
+	getSearchMatches(): string {
+		if (!this.searchTerm) return '';
+		const matches = this.jsonText.match(new RegExp(this.searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), 'gi'));
+		return matches
+			? `${matches.length} coincidencia${matches.length !== 1 ? 's' : ''} encontrada${matches.length !== 1 ? 's' : ''}`
+			: 'No se encontraron coincidencias';
+	}
+
+	onSearchTermChange(term: string) {
+		this.searchTerm = term;
+		this.findMatches();
+	}
+
+	private findMatches() {
+		this.matchPositions = [];
+		if (!this.searchTerm) {
+			this.totalMatches = 0;
+			this.currentMatchIndex = 0;
+			return;
+		}
+		const regex = new RegExp(this.searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), 'gi');
+		let m: RegExpExecArray | null;
+		while ((m = regex.exec(this.jsonText)) !== null) {
+			this.matchPositions.push({ start: m.index, end: m.index + m[0].length });
+			// prevent infinite loops for zero-length matches
+			if (m.index === regex.lastIndex) regex.lastIndex++;
+		}
+		this.totalMatches = this.matchPositions.length;
+		this.currentMatchIndex = this.totalMatches > 0 ? 0 : 0;
+		if (this.totalMatches > 0) this.selectMatch(0);
+	}
+
+	goToNextMatch() {
+		if (this.totalMatches === 0) return;
+		this.currentMatchIndex = (this.currentMatchIndex + 1) % this.totalMatches;
+		this.selectMatch(this.currentMatchIndex);
+	}
+
+	goToPreviousMatch() {
+		if (this.totalMatches === 0) return;
+		this.currentMatchIndex = (this.currentMatchIndex - 1 + this.totalMatches) % this.totalMatches;
+		this.selectMatch(this.currentMatchIndex);
+	}
+
+	private selectMatch(index: number) {
+		const pos = this.matchPositions[index];
+		if (!pos) return;
+		const textarea = this.jsonArea?.nativeElement;
+		if (!textarea) return;
+		textarea.selectionStart = pos.start;
+		textarea.selectionEnd = pos.end;
+		// scroll into view roughly
+		const before = this.jsonText.substring(0, pos.start);
+		const line = before.split('\n').length;
+		const lineHeight = 18; // approx
+		textarea.scrollTop = Math.max(0, (line - 5) * lineHeight);
 	}
 }

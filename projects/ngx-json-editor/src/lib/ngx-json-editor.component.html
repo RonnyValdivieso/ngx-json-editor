@@ -1,0 +1,60 @@
+<div class="card" style="width: 900px;">
+	<div class="card-header pb-3">
+		<div class="flex items-center justify-between">
+			<div class="card-title text-lg font-semibold">Editor JSON</div>
+			<div class="flex items-center gap-2">
+				<span class="badge" [ngClass]="isValid ? 'badge-default' : 'badge-destructive'">{{ isValid ? 'Válido' : 'Error'
+					}}</span>
+			</div>
+		</div>
+		<div class="flex flex-wrap gap-2 controls">
+			<button class="btn btn-outline btn-sm" (click)="formatJson()">Formatear</button>
+			<button class="btn btn-outline btn-sm" (click)="minifyJson()">Minificar</button>
+			<button class="btn btn-outline btn-sm" (click)="sortKeysAlphabetically()">
+				<span class="icon-arrow-up-down mr-1"></span>Ordenar Keys
+			</button>
+			<button class="btn btn-outline btn-sm" (click)="toggleSearch()">
+				<span class="icon-search mr-1"></span>Buscar
+			</button>
+			<button class="btn btn-outline btn-sm" (click)="copyToClipboard()">
+				<span class="icon-copy mr-1"></span>Copiar
+			</button>
+			<button class="btn btn-outline btn-sm" (click)="downloadJson()">
+				<span class="icon-download mr-1"></span>Descargar
+			</button>
+			<button class="btn btn-outline btn-sm" (click)="resetEditor()">
+				<span class="icon-rotate-ccw mr-1"></span>Reiniciar
+			</button>
+			<label class="cursor-pointer upload-label">
+				<span class="btn btn-outline btn-sm">
+					<span class="icon-upload mr-1"></span>Cargar
+				</span>
+				<input type="file" accept=".json,application/json" (change)="handleFileUpload($event)" class="hidden" />
+			</label>
+		</div>
+		<ngx-json-search [show]="showSearch" [searchTerm]="searchTerm" [totalMatches]="totalMatches"
+										 [currentMatchIndex]="currentMatchIndex" (searchTermChange)="onSearchTermChange($event)"
+										 (next)="goToNextMatch()" (prev)="goToPreviousMatch()" (close)="closeSearch()"></ngx-json-search>
+	</div>
+	<div class="card-content space-y-3">
+		<div class="relative bg-background border rounded-md">
+			<div *ngIf="searchTerm" #highlightOverlay
+					 class="absolute inset-0 pointer-events-none whitespace-pre-wrap break-words overflow-hidden z-10 editor-layer"
+					 [innerHTML]="highlightSearchTerm(jsonText, searchTerm, currentMatchIndex)"
+					 [ngStyle]="{color: 'transparent', background: 'transparent'}">
+			</div>
+			<textarea #jsonArea [(ngModel)]="jsonText" (ngModelChange)="onJsonTextChange($event)"
+								(keydown)="handleKeyDown($event)" (scroll)="syncScroll($event)" [placeholder]="placeholder"
+								class="editor-layer focus:outline-none focus:ring-2 focus:ring-ring relative bg-transparent"
+								[ngClass]="isValid ? 'text-foreground' : 'text-foreground bg-destructive-5'" [ngStyle]="{zIndex: 5}"
+								spellcheck="false"></textarea>
+		</div>
+		<div *ngIf="searchTerm" class="text-xs text-muted-foreground">
+			{{ getSearchMatches() }}
+		</div>
+		<div class="flex justify-between text-xs text-muted-foreground">
+			<span>Líneas: {{ jsonText.split('\n').length }}</span>
+			<span>Caracteres: {{ jsonText.length }}</span>
+		</div>
+	</div>
+</div>

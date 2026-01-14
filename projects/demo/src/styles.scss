@@ -1,1 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
+
+.demo-wrapper {
+	max-width: 920px;
+	margin: 2.5rem auto; /* center horizontally and add top/bottom spacing */
+	padding: 1rem;
+}
+
+/* Ensure ngx-json-editor card expands to full available width inside the wrapper */
+ngx-json-editor .card {
+	width: 100%;
+}

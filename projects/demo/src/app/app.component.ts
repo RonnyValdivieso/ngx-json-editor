@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { NgxJsonEditorModule } from '../../../ngx-json-editor/src/lib/ngx-json-editor.module';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [NgxJsonEditorModule],
+  imports: [CommonModule, NgxJsonEditorModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
