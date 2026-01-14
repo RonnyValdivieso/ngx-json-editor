@@ -28,7 +28,7 @@ A powerful and flexible JSON editor component for Angular applications with synt
 ## Installation
 
 ```bash
-npm install ngx-json-editor json-editor-core
+npm install ngx-json-editor
 ```
 
 ## Usage
