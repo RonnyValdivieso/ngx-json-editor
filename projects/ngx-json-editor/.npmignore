@@ -1,0 +1,27 @@
+# Source TypeScript files (except type definitions)
+*.ts
+!*.d.ts
+
+# Test files
+*.spec.ts
+**/*.spec.ts
+
+# Configuration files
+tsconfig.json
+tsconfig.*.json
+ng-package.json
+
+# Development files
+.editorconfig
+karma.conf.js
+
+# Documentation (will be included from built package)
+src/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

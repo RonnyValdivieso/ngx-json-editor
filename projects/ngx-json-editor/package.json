@@ -1,12 +1,34 @@
 {
-  "name": "ngx-json-editor",
-  "version": "0.0.1",
-  "peerDependencies": {
-    "@angular/common": "^18.2.0",
-    "@angular/core": "^18.2.0"
-  },
-  "dependencies": {
-    "tslib": "^2.3.0"
-  },
-  "sideEffects": false
+	"name": "ngx-json-editor",
+	"version": "1.0.0",
+	"description": "A powerful and flexible JSON editor component for Angular applications with syntax highlighting, validation, and advanced editing features",
+	"keywords": [
+		"angular",
+		"json",
+		"editor",
+		"json-editor",
+		"angular-component",
+		"typescript",
+		"json-viewer",
+		"syntax-highlighting"
+	],
+	"author": "Ronny Valdivieso",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/RonnyValdivieso/ngx-json-editor.git"
+	},
+	"homepage": "https://github.com/RonnyValdivieso/ngx-json-editor#readme",
+	"bugs": {
+		"url": "https://github.com/RonnyValdivieso/ngx-json-editor/issues"
+	},
+	"peerDependencies": {
+		"@angular/common": "^18.0.0",
+		"@angular/core": "^18.0.0",
+		"json-editor-core": "^0.1.0"
+	},
+	"dependencies": {
+		"tslib": "^2.3.0"
+	},
+	"sideEffects": false
 }
