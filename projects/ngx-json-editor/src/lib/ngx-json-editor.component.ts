@@ -52,10 +52,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		const isMod = isMac ? e.metaKey : e.ctrlKey;
 		if (isMod && e.key.toLowerCase() === 'f') {
 			e.preventDefault();
-			this.showSearch = true;
-			setTimeout(() => {
-				this.jsonSearchComponent?.focus();
-			}, 0);
+			this.toggleSearch();
 		}
 	};
 
@@ -212,9 +209,11 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.totalMatches = 0;
 			this.currentMatchIndex = 0;
 			this.matchPositions = [];
-		} else {
-			// focus later when component is ready
+			// Focus back to editor when closing
 			setTimeout(() => this.jsonArea?.nativeElement?.focus(), 0);
+		} else {
+			// focus search input when opening
+			setTimeout(() => this.jsonSearchComponent?.focus(), 0);
 			// Sync scroll initially
 			setTimeout(() => this.syncScroll(), 0);
 		}

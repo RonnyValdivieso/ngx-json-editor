@@ -123,4 +123,17 @@ describe('NgxJsonEditorComponent', () => {
 		// Cleanup
 		document.body.removeChild(fixture.nativeElement);
 	});
+
+	it('should toggle search visibility when toggleSearch is called', () => {
+		// Initial state: false
+		expect(component.showSearch).toBeFalse();
+
+		// Toggle ON
+		component.toggleSearch();
+		expect(component.showSearch).toBeTrue();
+
+		// Toggle OFF
+		component.toggleSearch();
+		expect(component.showSearch).toBeFalse();
+	});
 });
