@@ -1,6 +1,6 @@
 {
-	"name": "ngx-json-editor",
-	"version": "0.0.0",
+	"name": "@ronnjs/ngx-json-editor",
+	"version": "1.0.0",
 	"description": "A powerful and flexible JSON editor component for Angular applications with syntax highlighting, validation, and advanced editing features",
 	"keywords": [
 		"angular",
