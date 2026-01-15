@@ -44,7 +44,7 @@ fi
 # 5. Publish
 echo "🚀 Publishing to npm..."
 cd dist/ngx-json-editor
-npm publish
+npm publish --access public
 cd ../..
 
 echo "🎉 Success! ngx-json-editor $NEW_VERSION is now on npm."
