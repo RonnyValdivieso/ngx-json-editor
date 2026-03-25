@@ -31,11 +31,11 @@ describe('JsonEditorControlsComponent', () => {
 	});
 
 	it('should hide button if config says false', () => {
-		component.config = {
+		fixture.componentRef.setInput('config', {
 			buttons: {
 				format: false
 			}
-		};
+		});
 		fixture.detectChanges();
 		const buttons = fixture.nativeElement.querySelectorAll('button');
 		const hasFormat = Array.from(buttons).some((b: any) => b.title === 'Format');

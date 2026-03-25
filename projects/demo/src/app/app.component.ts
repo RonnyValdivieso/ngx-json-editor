@@ -1,12 +1,12 @@
 import { Component } from '@angular/core';
-import { NgxJsonEditorModule } from '../../../ngx-json-editor/src/lib/ngx-json-editor.module';
+import { NgxJsonEditorComponent } from '../../../ngx-json-editor/src/lib/ngx-json-editor.component';
 import { CommonModule } from '@angular/common';
 import { JsonEditorConfig } from '../../../ngx-json-editor/src/lib/models/json-editor-config';
 
 @Component({
 	selector: 'app-root',
 	standalone: true,
-	imports: [CommonModule, NgxJsonEditorModule],
+	imports: [CommonModule, NgxJsonEditorComponent],
 	templateUrl: './app.component.html',
 	styleUrl: './app.component.scss'
 })

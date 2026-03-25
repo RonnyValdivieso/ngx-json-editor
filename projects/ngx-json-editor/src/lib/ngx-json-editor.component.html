@@ -3,7 +3,7 @@
 	<div class="nje-header">
 		<div class="nje-header__top">
 			<ngx-json-editor-controls
-				[config]="config"
+				[config]="config()"
 				[labels]="labels"
 				(format)="formatJson()"
 				(minify)="minifyJson()"
@@ -35,20 +35,23 @@
 	<div class="nje-body">
 		<!-- Line numbers gutter -->
 		<div class="nje-gutter" #gutterEl>
+			@for (num of lineNumbers; track num) {
 			<div class="nje-gutter__line" 
-				 *ngFor="let num of lineNumbers"
 				 [class.nje-gutter__line--error]="num === errorLine"
 				 [title]="num === errorLine ? error : ''">
 				 {{ num }}
 			</div>
+			}
 		</div>
 
 		<!-- Editor area -->
 		<div class="nje-editor-area">
-			<div *ngIf="searchTerm" #highlightOverlay
+			@if (searchTerm) {
+			<div #highlightOverlay
 				 class="nje-highlight-overlay"
 				 [innerHTML]="highlightSearchTerm(jsonText, searchTerm, currentMatchIndex)">
 			</div>
+			}
 			<textarea #jsonArea
 				[(ngModel)]="jsonText"
 				(ngModelChange)="onJsonTextChange($event)"
@@ -56,8 +59,8 @@
 				(keydown)="handleKeyDown($event)"
 				(scroll)="syncScroll($event)"
 				[placeholder]="labels.placeholder"
-				[disabled]="disabled"
-				[readonly]="disabled"
+				[disabled]="disabled()"
+				[readonly]="disabled()"
 				[class.nje-textarea--error]="!isValid"
 				class="nje-textarea"
 				spellcheck="false">
@@ -67,7 +70,9 @@
 
 	<!-- Footer -->
 	<div class="nje-footer">
-		<span *ngIf="searchTerm" class="nje-footer__search">{{ getSearchMatches() }}</span>
+		@if (searchTerm) {
+		<span class="nje-footer__search">{{ getSearchMatches() }}</span>
+		}
 		<span class="nje-footer__info">
 			{{ labels.lines }}: {{ jsonText.split('\n').length }}
 		</span>

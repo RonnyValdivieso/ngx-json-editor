@@ -26,7 +26,7 @@ describe('NgxJsonEditorComponent', () => {
 		fixture = TestBed.createComponent(NgxJsonEditorComponent);
 		component = fixture.componentInstance;
 		document.body.appendChild(fixture.nativeElement);
-		component.initialValue = '{"key": "value"}';
+		fixture.componentRef.setInput('initialValue', '{"key": "value"}');
 		fixture.detectChanges();
 	});
 
@@ -48,7 +48,7 @@ describe('NgxJsonEditorComponent', () => {
 	});
 
 	it('should return default labels when no config provided', () => {
-		component.config = undefined;
+		fixture.componentRef.setInput('config', undefined);
 		const labels = component.labels;
 		expect(labels.format).toBe('Format');
 		expect(labels.valid).toBe('Valid');
@@ -56,12 +56,12 @@ describe('NgxJsonEditorComponent', () => {
 	});
 
 	it('should override labels via config', () => {
-		component.config = {
+		fixture.componentRef.setInput('config', {
 			labels: {
 				format: 'Formatear',
 				valid: 'Válido',
 			}
-		};
+		});
 		const labels = component.labels;
 		expect(labels.format).toBe('Formatear');
 		expect(labels.valid).toBe('Válido');
@@ -83,7 +83,7 @@ describe('NgxJsonEditorComponent', () => {
 
 		expect(document.activeElement).toBe(input);
 
-		const textarea = component.jsonArea.nativeElement;
+		const textarea = component.jsonArea()!.nativeElement;
 		expect(textarea.selectionStart).not.toEqual(textarea.selectionEnd);
 
 		document.body.removeChild(input);
@@ -109,12 +109,12 @@ describe('NgxJsonEditorComponent', () => {
 		component.searchTerm = 'key';
 		const largeJson = JSON.stringify(Array.from({ length: 100 }, (_, i) => ({ key: `value ${i}` })), null, 2);
 
-		component.initialValue = largeJson;
+		fixture.componentRef.setInput('initialValue', largeJson);
 		component.ngOnInit();
 		fixture.detectChanges();
 
-		const textarea = component.jsonArea.nativeElement;
-		const overlay = component.highlightOverlay?.nativeElement;
+		const textarea = component.jsonArea()!.nativeElement;
+		const overlay = component.highlightOverlay()?.nativeElement;
 
 		expect(overlay).toBeDefined();
 		if (!overlay) {
@@ -149,11 +149,11 @@ describe('NgxJsonEditorComponent', () => {
 	});
 
 	it('should hide buttons based on config', () => {
-		component.config = {
+		fixture.componentRef.setInput('config', {
 			buttons: {
 				format: false
 			}
-		};
+		});
 		fixture.detectChanges();
 
 		const controls = fixture.nativeElement.querySelector('ngx-json-editor-controls');
@@ -165,7 +165,7 @@ describe('NgxJsonEditorComponent', () => {
 	});
 
 	it('should auto-indent on Enter', async () => {
-		const textarea = component.jsonArea.nativeElement;
+		const textarea = component.jsonArea()!.nativeElement;
 		component.jsonText = '  "key": "value"';
 		fixture.detectChanges();
 		await fixture.whenStable();
@@ -179,7 +179,7 @@ describe('NgxJsonEditorComponent', () => {
 	});
 
 	it('should add extra indentation after {', async () => {
-		const textarea = component.jsonArea.nativeElement;
+		const textarea = component.jsonArea()!.nativeElement;
 		component.jsonText = '{';
 		fixture.detectChanges();
 		await fixture.whenStable();
@@ -193,7 +193,7 @@ describe('NgxJsonEditorComponent', () => {
 	});
 
 	it('should expand block when Enter between {}', async () => {
-		const textarea = component.jsonArea.nativeElement;
+		const textarea = component.jsonArea()!.nativeElement;
 		component.jsonText = '{}';
 		fixture.detectChanges();
 		await fixture.whenStable();
@@ -208,7 +208,7 @@ describe('NgxJsonEditorComponent', () => {
 	});
 
 	it('should un-indent with Shift+Tab', async () => {
-		const textarea = component.jsonArea.nativeElement;
+		const textarea = component.jsonArea()!.nativeElement;
 		component.jsonText = '  "key": "value"';
 		fixture.detectChanges();
 		await fixture.whenStable();

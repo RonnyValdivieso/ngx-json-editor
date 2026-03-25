@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { JsonEditorConfig, JsonEditorLabels, DEFAULT_LABELS } from '../models/json-editor-config';
 import { CommonModule } from '@angular/common';
 
@@ -10,15 +10,15 @@ import { CommonModule } from '@angular/common';
 	styleUrls: ['./json-editor-controls.component.scss']
 })
 export class JsonEditorControlsComponent {
-	@Input() config?: JsonEditorConfig;
-	@Input() labels: Required<JsonEditorLabels> = DEFAULT_LABELS;
+	config = input<JsonEditorConfig>();
+	labels = input<Required<JsonEditorLabels>>(DEFAULT_LABELS);
 
-	@Output() format = new EventEmitter<void>();
-	@Output() minify = new EventEmitter<void>();
-	@Output() sort = new EventEmitter<void>();
-	@Output() toggleSearch = new EventEmitter<void>();
-	@Output() copy = new EventEmitter<void>();
-	@Output() download = new EventEmitter<void>();
-	@Output() reset = new EventEmitter<void>();
-	@Output() load = new EventEmitter<Event>();
+	format = output<void>();
+	minify = output<void>();
+	sort = output<void>();
+	toggleSearch = output<void>();
+	copy = output<void>();
+	download = output<void>();
+	reset = output<void>();
+	load = output<Event>();
 }

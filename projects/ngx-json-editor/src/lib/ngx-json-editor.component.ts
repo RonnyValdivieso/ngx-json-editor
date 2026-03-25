@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef, forwardRef } from '@angular/core';
+import { Component, viewChild, input, output, model, effect, untracked, AfterViewInit, OnDestroy, ChangeDetectorRef, forwardRef, ElementRef } from '@angular/core';
 import { JsonSearchComponent } from './json-search/json-search.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { JsonEditorControlsComponent } from './json-editor-controls/json-editor-controls.component';
@@ -21,22 +21,19 @@ import { JsonEditorConfig, JsonEditorLabels, DEFAULT_LABELS } from './models/jso
 	]
 })
 export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
-	@ViewChild('jsonArea') jsonArea!: ElementRef<HTMLTextAreaElement>;
-	@ViewChild('highlightOverlay') highlightOverlay?: ElementRef<HTMLDivElement>;
-	@ViewChild('gutterEl') gutterEl?: ElementRef<HTMLDivElement>;
-	@ViewChild(JsonSearchComponent) jsonSearchComponent?: JsonSearchComponent;
+	jsonArea = viewChild<ElementRef<HTMLTextAreaElement>>('jsonArea');
+	highlightOverlay = viewChild<ElementRef<HTMLDivElement>>('highlightOverlay');
+	gutterEl = viewChild<ElementRef<HTMLDivElement>>('gutterEl');
+	jsonSearchComponent = viewChild<JsonSearchComponent>(JsonSearchComponent);
 
-	@Input() initialValue: string = '';
-	@Input() config?: JsonEditorConfig;
-	@Input() disabled: boolean = false;
+	initialValue = input<string>('');
+	config = input<JsonEditorConfig>();
+	disabled = model<boolean>(false);
 	
-	@Input()
-	set data(value: any) {
-		this.writeValue(value);
-	}
-	@Output() dataChange = new EventEmitter<any>();
+	data = input<any>();
+	dataChange = output<any>();
 	
-	@Output() errorChange = new EventEmitter<string | null>();
+	errorChange = output<string | null>();
 
 	jsonText: string = '';
 	isValid: boolean = true;
@@ -54,10 +51,19 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	constructor(
 		private sanitizer: DomSanitizer,
 		private cdr: ChangeDetectorRef
-	) { }
+	) {
+		effect(() => {
+			const d = this.data();
+			untracked(() => {
+				if (d !== undefined) {
+					this.writeValue(d);
+				}
+			});
+		});
+	}
 
 	get labels(): Required<JsonEditorLabels> {
-		return { ...DEFAULT_LABELS, ...this.config?.labels };
+		return { ...DEFAULT_LABELS, ...this.config()?.labels };
 	}
 
 	get lineNumbers(): number[] {
@@ -68,25 +74,35 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	private extractErrorLine(errorMessage: string, text: string): number | null {
 		if (!errorMessage || !text) return null;
 
-		// Format: "Unexpected token } in JSON at position 123"
-		const positionMatch = errorMessage.match(/at position (\d+)/);
+		// Format 1: "at position 123" (traditional Chrome/Node)
+		const positionMatch = errorMessage.match(/position (\d+)/i);
 		if (positionMatch && positionMatch[1]) {
 			const position = parseInt(positionMatch[1], 10);
 			const textUpToError = text.substring(0, position);
 			return textUpToError.split('\n').length;
 		}
 
-		// Format: "Unexpected token 'a', ... at line 4 column 5"
-		const lineMatch = errorMessage.match(/at line (\d+)/);
+		// Format 2: "at line 4" or "(line 4 column 5)" (Firefox, newer environments)
+		const lineMatch = errorMessage.match(/line (\d+)/i);
 		if (lineMatch && lineMatch[1]) {
 			return parseInt(lineMatch[1], 10);
+		}
+
+		// Fallback: Trailing comma detection for Chrome/V8 where position is sometimes omitted in the message
+		if (errorMessage.toLowerCase().includes("unexpected token ']'") || 
+			errorMessage.toLowerCase().includes("unexpected token '}'")) {
+			const trailingCommaMatch = text.match(/,\s*[\]}]/);
+			if (trailingCommaMatch && trailingCommaMatch.index !== undefined) {
+				const textUpToComma = text.substring(0, trailingCommaMatch.index);
+				return textUpToComma.split('\n').length;
+			}
 		}
 
 		return null;
 	}
 
 	ngOnInit() {
-		this.jsonText = this.initialValue;
+		this.jsonText = this.initialValue();
 		this.validateJson(this.jsonText);
 	}
 
@@ -134,7 +150,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	}
 
 	setDisabledState(isDisabled: boolean): void {
-		this.disabled = isDisabled;
+		this.disabled.set(isDisabled);
 		this.cdr.markForCheck();
 	}
 
@@ -245,12 +261,12 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	}
 
 	resetEditor() {
-		this.jsonText = this.initialValue;
+		this.jsonText = this.initialValue();
 		this.emitValue(this.jsonText);
 	}
 
 	handleKeyDown(event: KeyboardEvent) {
-		const textarea = this.jsonArea?.nativeElement;
+		const textarea = this.jsonArea()?.nativeElement;
 		if (!textarea) return;
 
 		if (event.key === 'Tab') {
@@ -287,9 +303,10 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			const currentLine = lines[lines.length - 1];
 			const indentation = currentLine.match(/^\s*/)?.[0] || '';
 
-			const charBefore = textBefore.trim().slice(-1);
+			// Ignore spaces and tabs, but NOT newlines
+			const charBefore = textBefore.replace(/[ \t]+$/, '').slice(-1);
 			const textAfter = text.substring(textarea.selectionEnd);
-			const charAfter = textAfter.trim().charAt(0);
+			const charAfter = textAfter.replace(/^[ \t]+/, '').charAt(0);
 
 			let insertText = '\n' + indentation;
 			let cursorOffset: number | undefined;
@@ -333,7 +350,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	}
 
 	private updateUiAfterManualChange() {
-		const textarea = this.jsonArea?.nativeElement;
+		const textarea = this.jsonArea()?.nativeElement;
 		if (!textarea) return;
 
 		const newValue = textarea.value;
@@ -395,20 +412,20 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			this.totalMatches = 0;
 			this.currentMatchIndex = 0;
 			this.matchPositions = [];
-			setTimeout(() => this.jsonArea?.nativeElement?.focus(), 0);
+			setTimeout(() => this.jsonArea()?.nativeElement?.focus(), 0);
 		} else {
-			setTimeout(() => this.jsonSearchComponent?.focus(), 0);
+			setTimeout(() => this.jsonSearchComponent()?.focus(), 0);
 			setTimeout(() => this.syncScroll(), 0);
 		}
 	}
 
 	syncScroll(event?: Event) {
-		if (this.highlightOverlay && this.jsonArea) {
-			this.highlightOverlay.nativeElement.scrollTop = this.jsonArea.nativeElement.scrollTop;
-			this.highlightOverlay.nativeElement.scrollLeft = this.jsonArea.nativeElement.scrollLeft;
+		if (this.highlightOverlay() && this.jsonArea()) {
+			this.highlightOverlay()!.nativeElement.scrollTop = this.jsonArea()!.nativeElement.scrollTop;
+			this.highlightOverlay()!.nativeElement.scrollLeft = this.jsonArea()!.nativeElement.scrollLeft;
 		}
-		if (this.gutterEl && this.jsonArea) {
-			this.gutterEl.nativeElement.scrollTop = this.jsonArea.nativeElement.scrollTop;
+		if (this.gutterEl() && this.jsonArea()) {
+			this.gutterEl()!.nativeElement.scrollTop = this.jsonArea()!.nativeElement.scrollTop;
 		}
 	}
 
@@ -463,7 +480,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	private selectMatch(index: number) {
 		const pos = this.matchPositions[index];
 		if (!pos) return;
-		const textarea = this.jsonArea?.nativeElement;
+		const textarea = this.jsonArea()?.nativeElement;
 		if (!textarea) return;
 		textarea.selectionStart = pos.start;
 		textarea.selectionEnd = pos.end;
