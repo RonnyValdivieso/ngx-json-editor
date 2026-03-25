@@ -1,15 +1,17 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { JsonEditorConfig } from '../models/json-editor-config';
+import { JsonEditorConfig, JsonEditorLabels, DEFAULT_LABELS } from '../models/json-editor-config';
+import { CommonModule } from '@angular/common';
 
 @Component({
 	selector: 'ngx-json-editor-controls',
 	standalone: true,
-	imports: [],
+	imports: [CommonModule],
 	templateUrl: './json-editor-controls.component.html',
 	styleUrls: ['./json-editor-controls.component.scss']
 })
-export class JsonEditorControlsComponent implements OnInit {
+export class JsonEditorControlsComponent {
 	@Input() config?: JsonEditorConfig;
+	@Input() labels: Required<JsonEditorLabels> = DEFAULT_LABELS;
 
 	@Output() format = new EventEmitter<void>();
 	@Output() minify = new EventEmitter<void>();
@@ -19,8 +21,4 @@ export class JsonEditorControlsComponent implements OnInit {
 	@Output() download = new EventEmitter<void>();
 	@Output() reset = new EventEmitter<void>();
 	@Output() load = new EventEmitter<Event>();
-
-	ngOnInit() {
-		console.log('config', this.config);
-	}
 }

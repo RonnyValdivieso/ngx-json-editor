@@ -1,41 +1,76 @@
-<div class="flex flex-wrap gap-2 controls">
+<div class="nje-controls">
 	@if (config?.buttons?.format !== false) {
-	<button class="btn btn-outline btn-sm" (click)="format.emit()">Formatear</button>
+	<button class="nje-controls__btn" [title]="labels.format" (click)="format.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<polyline points="4 7 4 4 20 4 20 7"></polyline>
+			<line x1="9" y1="20" x2="15" y2="20"></line>
+			<line x1="12" y1="4" x2="12" y2="20"></line>
+		</svg>
+	</button>
 	}
 	@if (config?.buttons?.minify !== false) {
-	<button class="btn btn-outline btn-sm" (click)="minify.emit()">Minificar</button>
+	<button class="nje-controls__btn" [title]="labels.minify" (click)="minify.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<polyline points="4 14 10 14 10 20"></polyline>
+			<polyline points="20 10 14 10 14 4"></polyline>
+			<line x1="14" y1="10" x2="21" y2="3"></line>
+			<line x1="3" y1="21" x2="10" y2="14"></line>
+		</svg>
+	</button>
 	}
 	@if (config?.buttons?.sort !== false) {
-	<button class="btn btn-outline btn-sm" (click)="sort.emit()">
-		<span class="icon-arrow-up-down mr-1"></span>Ordenar Keys
+	<button class="nje-controls__btn" [title]="labels.sort" (click)="sort.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<line x1="12" y1="5" x2="12" y2="19"></line>
+			<polyline points="19 12 12 19 5 12"></polyline>
+			<line x1="4" y1="5" x2="20" y2="5"></line>
+		</svg>
 	</button>
 	}
 	@if (config?.buttons?.search !== false) {
-	<button class="btn btn-outline btn-sm" (click)="toggleSearch.emit()">
-		<span class="icon-search mr-1"></span>Buscar
+	<button class="nje-controls__btn" [title]="labels.search" (click)="toggleSearch.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<circle cx="11" cy="11" r="8"></circle>
+			<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+		</svg>
 	</button>
 	}
+
+	<span class="nje-controls__separator"></span>
+
 	@if (config?.buttons?.copy !== false) {
-	<button class="btn btn-outline btn-sm" (click)="copy.emit()">
-		<span class="icon-copy mr-1"></span>Copiar
+	<button class="nje-controls__btn" [title]="labels.copy" (click)="copy.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+			<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+		</svg>
 	</button>
 	}
 	@if (config?.buttons?.download !== false) {
-	<button class="btn btn-outline btn-sm" (click)="download.emit()">
-		<span class="icon-download mr-1"></span>Descargar
-	</button>
-	}
-	@if (config?.buttons?.reset !== false) {
-	<button class="btn btn-outline btn-sm" (click)="reset.emit()">
-		<span class="icon-rotate-ccw mr-1"></span>Reiniciar
+	<button class="nje-controls__btn" [title]="labels.download" (click)="download.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+			<polyline points="7 10 12 15 17 10"></polyline>
+			<line x1="12" y1="15" x2="12" y2="3"></line>
+		</svg>
 	</button>
 	}
 	@if (config?.buttons?.load !== false) {
-	<label class="cursor-pointer upload-label">
-		<span class="btn btn-outline btn-sm">
-			<span class="icon-upload mr-1"></span>Cargar
-		</span>
-		<input type="file" accept=".json,application/json" (change)="load.emit($event)" class="hidden" />
+	<label class="nje-controls__btn nje-controls__upload" [title]="labels.upload">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+			<polyline points="17 8 12 3 7 8"></polyline>
+			<line x1="12" y1="3" x2="12" y2="15"></line>
+		</svg>
+		<input type="file" accept=".json,application/json" (change)="load.emit($event)" class="nje-controls__file-input" />
 	</label>
+	}
+	@if (config?.buttons?.reset !== false) {
+	<button class="nje-controls__btn" [title]="labels.reset" (click)="reset.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<polyline points="1 4 1 10 7 10"></polyline>
+			<path d="M3.51 15a9 9 0 102.13-9.36L1 10"></path>
+		</svg>
+	</button>
 	}
 </div>

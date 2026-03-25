@@ -1,19 +1,37 @@
-<div *ngIf="show" class="search-box flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-  <span class="icon-search">
-		<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-		  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-		</svg>
+<div *ngIf="show" class="nje-search">
+	<svg class="nje-search__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<circle cx="11" cy="11" r="8"></circle>
+		<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+	</svg>
+
+	<input #searchInput type="text"
+		[(ngModel)]="searchTerm"
+		(ngModelChange)="searchTermChange.emit($event)"
+		(keydown)="onKeyDown($event)"
+		[placeholder]="labels.searchPlaceholder"
+		class="nje-search__input" />
+
+	<span class="nje-search__counter">
+		{{ searchTerm ? (totalMatches > 0 ? (currentMatchIndex + 1) + ' ' + labels.of + ' ' + totalMatches : labels.noResults) : '' }}
 	</span>
-  <input #searchInput type="text" [(ngModel)]="searchTerm" (ngModelChange)="searchTermChange.emit($event)" (keydown)="onKeyDown($event)" placeholder="Buscar en JSON... (Enter: siguiente, Shift+Enter: anterior, Esc: cerrar)" class="flex-1 h-9 input" />
 
-  <div *ngIf="totalMatches > 0" class="flex items-center gap-1">
-    <button class="btn btn-ghost btn-sm h-8 w-8 p-0" title="Anterior (Shift+Enter)" (click)="prev.emit()">▲</button>
-    <button class="btn btn-ghost btn-sm h-8 w-8 p-0" title="Siguiente (Enter)" (click)="next.emit()">▼</button>
-  </div>
+	<div *ngIf="totalMatches > 0" class="nje-search__nav">
+		<button class="nje-search__nav-btn" (click)="prev.emit()" title="Previous (Shift+Enter)">
+			<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+				<polyline points="18 15 12 9 6 15"></polyline>
+			</svg>
+		</button>
+		<button class="nje-search__nav-btn" (click)="next.emit()" title="Next (Enter)">
+			<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+				<polyline points="6 9 12 15 18 9"></polyline>
+			</svg>
+		</button>
+	</div>
 
-  <div class="text-xs text-muted-foreground whitespace-nowrap min-w-fit">
-    {{ searchTerm ? (totalMatches > 0 ? (currentMatchIndex + 1) + ' de ' + totalMatches : 'Sin resultados') : 'Ctrl+F' }}
-  </div>
-
-  <button class="btn btn-ghost btn-sm h-8 w-8 p-0" (click)="close.emit()">✕</button>
+	<button class="nje-search__close" (click)="close.emit()">
+		<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+			<line x1="18" y1="6" x2="6" y2="18"></line>
+			<line x1="6" y1="6" x2="18" y2="18"></line>
+		</svg>
+	</button>
 </div>

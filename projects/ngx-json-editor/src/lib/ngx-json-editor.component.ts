@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { JsonSearchComponent } from './json-search/json-search.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { JsonEditorControlsComponent } from './json-editor-controls/json-editor-controls.component';
-import { JsonEditorConfig } from './models/json-editor-config';
+import { JsonEditorConfig, JsonEditorLabels, DEFAULT_LABELS } from './models/json-editor-config';
 
 @Component({
 	selector: 'ngx-json-editor',
@@ -16,13 +16,12 @@ import { JsonEditorConfig } from './models/json-editor-config';
 export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 	@ViewChild('jsonArea') jsonArea!: ElementRef<HTMLTextAreaElement>;
 	@ViewChild('highlightOverlay') highlightOverlay?: ElementRef<HTMLDivElement>;
+	@ViewChild('gutterEl') gutterEl?: ElementRef<HTMLDivElement>;
 	@ViewChild(JsonSearchComponent) jsonSearchComponent?: JsonSearchComponent;
 
 	@Input() initialValue: string = '';
 	@Input() config?: JsonEditorConfig;
 	@Output() errorChange = new EventEmitter<string | null>();
-	placeholder = 'Ingresa tu JSON aquí...';
-	fontMono = 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace';
 
 	jsonText: string = '';
 	isValid: boolean = true;
@@ -33,7 +32,19 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 	currentMatchIndex: number = 0;
 	private matchPositions: Array<{ start: number; end: number }> = [];
 
-	constructor(private sanitizer: DomSanitizer) { }
+	constructor(
+		private sanitizer: DomSanitizer,
+		private cdr: ChangeDetectorRef
+	) { }
+
+	get labels(): Required<JsonEditorLabels> {
+		return { ...DEFAULT_LABELS, ...this.config?.labels };
+	}
+
+	get lineNumbers(): number[] {
+		const count = this.jsonText ? this.jsonText.split('\n').length : 1;
+		return Array.from({ length: count }, (_, i) => i + 1);
+	}
 
 	ngOnInit() {
 		this.jsonText = this.initialValue;
@@ -72,7 +83,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			return true;
 		} catch (err: any) {
 			this.isValid = false;
-			this.error = err.message || 'JSON inválido';
+			this.error = err.message || 'Invalid JSON';
 			this.errorChange.emit(this.error);
 			return false;
 		}
@@ -93,7 +104,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.error = null;
 			this.errorChange.emit(null);
 		} catch {
-			this.error = 'El JSON contiene errores de sintaxis';
+			this.error = 'JSON contains syntax errors';
 			this.isValid = false;
 			this.errorChange.emit(this.error);
 		}
@@ -109,7 +120,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.error = null;
 			this.errorChange.emit(null);
 		} catch {
-			this.error = 'El JSON contiene errores de sintaxis';
+			this.error = 'JSON contains syntax errors';
 			this.isValid = false;
 			this.errorChange.emit(this.error);
 		}
@@ -151,19 +162,99 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 	}
 
 	handleKeyDown(event: KeyboardEvent) {
+		const textarea = this.jsonArea?.nativeElement;
+		if (!textarea) return;
+
 		if (event.key === 'Tab') {
 			event.preventDefault();
-			const textarea = this.jsonArea?.nativeElement;
-			if (!textarea) return;
+			const start = textarea.selectionStart;
+			const text = textarea.value;
+
+			if (event.shiftKey) {
+				// Shift + Tab (Un-indent)
+				const textBefore = text.substring(0, start);
+				const lastNewline = textBefore.lastIndexOf('\n');
+				const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+				const currentLine = text.substring(lineStart, text.indexOf('\n', lineStart) === -1 ? text.length : text.indexOf('\n', lineStart));
+
+				if (currentLine.startsWith('  ')) {
+					// Select the 2 spaces and replace with empty string
+					this.replaceSelection(textarea, '', 0, [lineStart, lineStart + 2]);
+					// Restore cursor position, shifted back by 2
+					const newPos = Math.max(lineStart, start - 2);
+					textarea.setSelectionRange(newPos, newPos);
+					this.updateUiAfterManualChange();
+				}
+			} else {
+				// Tab (Indent)
+				this.replaceSelection(textarea, '  ');
+				this.updateUiAfterManualChange();
+			}
+		} else if (event.key === 'Enter' || event.key === 'NumpadEnter') {
+			event.preventDefault();
+			const start = textarea.selectionStart;
+			const text = textarea.value;
+			const textBefore = text.substring(0, start);
+			const lines = textBefore.split('\n');
+			const currentLine = lines[lines.length - 1];
+			const indentation = currentLine.match(/^\s*/)?.[0] || '';
+
+			const charBefore = textBefore.trim().slice(-1);
+			const textAfter = text.substring(textarea.selectionEnd);
+			const charAfter = textAfter.trim().charAt(0);
+
+			let insertText = '\n' + indentation;
+			let cursorOffset: number | undefined;
+
+			if (charBefore === '{' || charBefore === '[') {
+				insertText += '  ';
+				// Expand block if breaking between {} or []
+				if ((charBefore === '{' && charAfter === '}') || (charBefore === '[' && charAfter === ']')) {
+					const totalInsert = insertText + '\n' + indentation;
+					cursorOffset = insertText.length;
+					insertText = totalInsert;
+				}
+			}
+
+			this.replaceSelection(textarea, insertText, cursorOffset);
+			this.updateUiAfterManualChange();
+		}
+	}
+
+	private replaceSelection(textarea: HTMLTextAreaElement, replacement: string, cursorOffset?: number, selectRange?: [number, number]) {
+		if (selectRange) {
+			textarea.setSelectionRange(selectRange[0], selectRange[1]);
+		}
+
+		// Try to use execCommand to preserve undo stack
+		const success = document.execCommand('insertText', false, replacement);
+
+		if (!success) {
+			// Fallback for environments where execCommand is not supported (e.g. some tests)
 			const start = textarea.selectionStart;
 			const end = textarea.selectionEnd;
-			const newValue = this.jsonText.substring(0, start) + '  ' + this.jsonText.substring(end);
-			this.jsonText = newValue;
-			this.validateJson(newValue);
-			setTimeout(() => {
-				textarea.selectionStart = textarea.selectionEnd = start + 2;
-			}, 0);
+			const val = textarea.value;
+			textarea.value = val.substring(0, start) + replacement + val.substring(end);
+			textarea.selectionStart = textarea.selectionEnd = start + (cursorOffset ?? replacement.length);
+		} else if (cursorOffset !== undefined) {
+			// If we used execCommand but need to adjust cursor (like block expansion)
+			const currentStart = textarea.selectionStart;
+			const newPos = currentStart - (replacement.length - cursorOffset);
+			textarea.setSelectionRange(newPos, newPos);
 		}
+	}
+
+	private updateUiAfterManualChange() {
+		const textarea = this.jsonArea?.nativeElement;
+		if (!textarea) return;
+
+		const newValue = textarea.value;
+		this.jsonText = newValue;
+		this.validateJson(newValue);
+
+		// Force change detection and scroll sync
+		this.cdr.detectChanges();
+		this.syncScroll();
 	}
 
 	sortKeysAlphabetically() {
@@ -190,7 +281,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.error = null;
 			this.errorChange.emit(null);
 		} catch {
-			this.error = 'El JSON contiene errores de sintaxis';
+			this.error = 'JSON contains syntax errors';
 			this.isValid = false;
 			this.errorChange.emit(this.error);
 		}
@@ -203,10 +294,9 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		const html = text.replace(regex, (match) => {
 			const isActive = count === activeIndex;
 			count++;
-			// Use inline styles to ensure visibility
 			const style = isActive
-				? 'background-color: #f97316; color: white; border-radius: 2px;' // Orange
-				: 'background-color: #fde047; color: black; border-radius: 2px;'; // Yellow
+				? 'background-color: var(--nje-match-active, #f97316); color: white; border-radius: 2px;'
+				: 'background-color: var(--nje-match, #fde047); color: black; border-radius: 2px;';
 			return `<span style="${style}">${match}</span>`;
 		});
 		return this.sanitizer.bypassSecurityTrustHtml(html);
@@ -219,12 +309,9 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			this.totalMatches = 0;
 			this.currentMatchIndex = 0;
 			this.matchPositions = [];
-			// Focus back to editor when closing
 			setTimeout(() => this.jsonArea?.nativeElement?.focus(), 0);
 		} else {
-			// focus search input when opening
 			setTimeout(() => this.jsonSearchComponent?.focus(), 0);
-			// Sync scroll initially
 			setTimeout(() => this.syncScroll(), 0);
 		}
 	}
@@ -233,6 +320,9 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		if (this.highlightOverlay && this.jsonArea) {
 			this.highlightOverlay.nativeElement.scrollTop = this.jsonArea.nativeElement.scrollTop;
 			this.highlightOverlay.nativeElement.scrollLeft = this.jsonArea.nativeElement.scrollLeft;
+		}
+		if (this.gutterEl && this.jsonArea) {
+			this.gutterEl.nativeElement.scrollTop = this.jsonArea.nativeElement.scrollTop;
 		}
 	}
 
@@ -245,8 +335,8 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		if (!this.searchTerm) return '';
 		const matches = this.jsonText.match(new RegExp(this.searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), 'gi'));
 		return matches
-			? `${matches.length} coincidencia${matches.length !== 1 ? 's' : ''} encontrada${matches.length !== 1 ? 's' : ''}`
-			: 'No se encontraron coincidencias';
+			? `${matches.length} match${matches.length !== 1 ? 'es' : ''}`
+			: this.labels.noResults;
 	}
 
 	onSearchTermChange(term: string) {
@@ -265,7 +355,6 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		let m: RegExpExecArray | null;
 		while ((m = regex.exec(this.jsonText)) !== null) {
 			this.matchPositions.push({ start: m.index, end: m.index + m[0].length });
-			// prevent infinite loops for zero-length matches
 			if (m.index === regex.lastIndex) regex.lastIndex++;
 		}
 		this.totalMatches = this.matchPositions.length;
@@ -292,10 +381,9 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		if (!textarea) return;
 		textarea.selectionStart = pos.start;
 		textarea.selectionEnd = pos.end;
-		// scroll into view roughly
 		const before = this.jsonText.substring(0, pos.start);
 		const line = before.split('\n').length;
-		const lineHeight = 18; // approx
+		const lineHeight = 20;
 		textarea.scrollTop = Math.max(0, (line - 5) * lineHeight);
 	}
 }

@@ -12,27 +12,22 @@ import { JsonEditorConfig } from '../../../ngx-json-editor/src/lib/models/json-e
 })
 export class AppComponent {
 	data = `{
-    "name": "Ronny",
-    "role": "Developer",
-    "skills": ["Angular", "TypeScript", "SCSS"],
-    "settings": {
-      "theme": "dark",
-      "notifications": true
-    }
-  }`;
+  "name": "Ronny",
+  "role": "Developer",
+  "skills": ["Angular", "TypeScript", "SCSS"],
+  "settings": {
+    "theme": "dark",
+    "notifications": true
+  }
+}`;
 
-	editorConfig: JsonEditorConfig = {
-		buttons: {
-			minify: false,
-			download: false
-		}
-	};
+	editorConfig: JsonEditorConfig = {};
 
 	onJsonChange(newJson: any) {
-		console.log('Nuevo JSON:', newJson);
+		console.log('JSON changed:', newJson);
 	}
 
 	onErrorChange(error: string | null) {
-		console.log('Error:', error);
+		if (error) console.warn('JSON error:', error);
 	}
 }

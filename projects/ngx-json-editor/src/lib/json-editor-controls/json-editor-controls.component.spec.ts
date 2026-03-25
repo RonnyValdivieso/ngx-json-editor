@@ -22,11 +22,10 @@ describe('JsonEditorControlsComponent', () => {
 
 	it('should emit format event when format button is clicked', () => {
 		spyOn(component.format, 'emit');
-		const button = fixture.nativeElement.querySelector('button'); // First button is usually Format
-		// We can be more specific if we add IDs or classes, but checking text is fine for now
 		const buttons = fixture.nativeElement.querySelectorAll('button');
-		const formatBtn = Array.from(buttons).find((b: any) => b.textContent.includes('Formatear')) as HTMLButtonElement;
+		const formatBtn = Array.from(buttons).find((b: any) => b.title === 'Format') as HTMLButtonElement;
 
+		expect(formatBtn).toBeTruthy();
 		formatBtn.click();
 		expect(component.format.emit).toHaveBeenCalled();
 	});
@@ -39,7 +38,26 @@ describe('JsonEditorControlsComponent', () => {
 		};
 		fixture.detectChanges();
 		const buttons = fixture.nativeElement.querySelectorAll('button');
-		const hasFormat = Array.from(buttons).some((b: any) => b.textContent.includes('Formatear'));
+		const hasFormat = Array.from(buttons).some((b: any) => b.title === 'Format');
 		expect(hasFormat).toBeFalse();
+	});
+
+	it('should display all buttons by default', () => {
+		const buttons = fixture.nativeElement.querySelectorAll('.nje-controls__btn');
+		// 8 buttons: format, minify, sort, search, copy, download, upload, reset
+		expect(buttons.length).toBe(8);
+	});
+
+	it('should have correct tooltip titles from labels', () => {
+		const buttons = fixture.nativeElement.querySelectorAll('.nje-controls__btn');
+		const titles = Array.from(buttons).map((b: any) => b.title);
+		expect(titles).toContain('Format');
+		expect(titles).toContain('Minify');
+		expect(titles).toContain('Sort keys');
+		expect(titles).toContain('Search');
+		expect(titles).toContain('Copy');
+		expect(titles).toContain('Download');
+		expect(titles).toContain('Upload');
+		expect(titles).toContain('Reset');
 	});
 });
