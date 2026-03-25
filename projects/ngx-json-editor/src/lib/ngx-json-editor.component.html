@@ -47,9 +47,12 @@
 			<textarea #jsonArea
 				[(ngModel)]="jsonText"
 				(ngModelChange)="onJsonTextChange($event)"
+				(blur)="onBlur()"
 				(keydown)="handleKeyDown($event)"
 				(scroll)="syncScroll($event)"
 				[placeholder]="labels.placeholder"
+				[disabled]="disabled"
+				[readonly]="disabled"
 				[class.nje-textarea--error]="!isValid"
 				class="nje-textarea"
 				spellcheck="false">

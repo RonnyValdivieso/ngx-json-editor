@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef, forwardRef } from '@angular/core';
 import { JsonSearchComponent } from './json-search/json-search.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { JsonEditorControlsComponent } from './json-editor-controls/json-editor-controls.component';
@@ -11,9 +11,16 @@ import { JsonEditorConfig, JsonEditorLabels, DEFAULT_LABELS } from './models/jso
 	standalone: true,
 	imports: [CommonModule, FormsModule, JsonSearchComponent, JsonEditorControlsComponent],
 	templateUrl: './ngx-json-editor.component.html',
-	styleUrls: ['./ngx-json-editor.component.scss']
+	styleUrls: ['./ngx-json-editor.component.scss'],
+	providers: [
+		{
+			provide: NG_VALUE_ACCESSOR,
+			useExisting: forwardRef(() => NgxJsonEditorComponent),
+			multi: true
+		}
+	]
 })
-export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
+export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
 	@ViewChild('jsonArea') jsonArea!: ElementRef<HTMLTextAreaElement>;
 	@ViewChild('highlightOverlay') highlightOverlay?: ElementRef<HTMLDivElement>;
 	@ViewChild('gutterEl') gutterEl?: ElementRef<HTMLDivElement>;
@@ -21,6 +28,14 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 
 	@Input() initialValue: string = '';
 	@Input() config?: JsonEditorConfig;
+	@Input() disabled: boolean = false;
+	
+	@Input()
+	set data(value: any) {
+		this.writeValue(value);
+	}
+	@Output() dataChange = new EventEmitter<any>();
+	
 	@Output() errorChange = new EventEmitter<string | null>();
 
 	jsonText: string = '';
@@ -31,6 +46,9 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 	totalMatches: number = 0;
 	currentMatchIndex: number = 0;
 	private matchPositions: Array<{ start: number; end: number }> = [];
+
+	private onChange: any = () => {};
+	private onTouch: any = () => {};
 
 	constructor(
 		private sanitizer: DomSanitizer,
@@ -68,6 +86,57 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		}
 	};
 
+	// ControlValueAccessor Implementation
+	writeValue(obj: any): void {
+		let valueToSet = obj;
+		if (obj && typeof obj === 'object') {
+			valueToSet = JSON.stringify(obj, null, 2);
+		} else if (obj !== null && obj !== undefined) {
+			valueToSet = String(obj);
+		} else {
+			valueToSet = '';
+		}
+		
+		if (this.jsonText !== valueToSet) {
+			this.jsonText = valueToSet;
+			this.validateJson(this.jsonText);
+			this.cdr.markForCheck();
+		}
+	}
+
+	registerOnChange(fn: any): void {
+		this.onChange = fn;
+	}
+
+	registerOnTouched(fn: any): void {
+		this.onTouch = fn;
+	}
+
+	setDisabledState(isDisabled: boolean): void {
+		this.disabled = isDisabled;
+		this.cdr.markForCheck();
+	}
+
+	onBlur() {
+		this.onTouch();
+	}
+
+	private emitValue(value: string) {
+		if (this.validateJson(value)) {
+			try {
+				const parsed = value.trim() ? JSON.parse(value) : null;
+				this.onChange(parsed);
+				this.dataChange.emit(parsed);
+			} catch {
+				this.onChange(value);
+				this.dataChange.emit(value);
+			}
+		} else {
+			this.onChange(value);
+			this.dataChange.emit(value);
+		}
+	}
+
 	validateJson(text: string): boolean {
 		if (!text.trim()) {
 			this.isValid = true;
@@ -91,7 +160,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 
 	onJsonTextChange(value: string) {
 		this.jsonText = value;
-		this.validateJson(value);
+		this.emitValue(value);
 	}
 
 	formatJson() {
@@ -100,9 +169,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			const parsed = JSON.parse(this.jsonText);
 			const formatted = JSON.stringify(parsed, null, 2);
 			this.jsonText = formatted;
-			this.isValid = true;
-			this.error = null;
-			this.errorChange.emit(null);
+			this.emitValue(this.jsonText);
 		} catch {
 			this.error = 'JSON contains syntax errors';
 			this.isValid = false;
@@ -116,9 +183,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			const parsed = JSON.parse(this.jsonText);
 			const minified = JSON.stringify(parsed);
 			this.jsonText = minified;
-			this.isValid = true;
-			this.error = null;
-			this.errorChange.emit(null);
+			this.emitValue(this.jsonText);
 		} catch {
 			this.error = 'JSON contains syntax errors';
 			this.isValid = false;
@@ -149,7 +214,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 		reader.onload = (e: any) => {
 			const content = e.target?.result as string;
 			this.jsonText = content;
-			this.validateJson(content);
+			this.emitValue(content);
 		};
 		reader.readAsText(file);
 		event.target.value = '';
@@ -157,8 +222,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 
 	resetEditor() {
 		this.jsonText = this.initialValue;
-		this.isValid = true;
-		this.error = null;
+		this.emitValue(this.jsonText);
 	}
 
 	handleKeyDown(event: KeyboardEvent) {
@@ -250,7 +314,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 
 		const newValue = textarea.value;
 		this.jsonText = newValue;
-		this.validateJson(newValue);
+		this.emitValue(newValue);
 
 		// Force change detection and scroll sync
 		this.cdr.detectChanges();
@@ -277,9 +341,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy {
 			const sortedJson = sortObjectKeys(parsed);
 			const formatted = JSON.stringify(sortedJson, null, 2);
 			this.jsonText = formatted;
-			this.isValid = true;
-			this.error = null;
-			this.errorChange.emit(null);
+			this.emitValue(this.jsonText);
 		} catch {
 			this.error = 'JSON contains syntax errors';
 			this.isValid = false;
