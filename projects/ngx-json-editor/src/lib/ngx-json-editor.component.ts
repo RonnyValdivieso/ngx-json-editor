@@ -41,6 +41,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	jsonText: string = '';
 	isValid: boolean = true;
 	error: string | null = null;
+	errorLine: number | null = null;
 	searchTerm: string = '';
 	showSearch: boolean = false;
 	totalMatches: number = 0;
@@ -62,6 +63,26 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	get lineNumbers(): number[] {
 		const count = this.jsonText ? this.jsonText.split('\n').length : 1;
 		return Array.from({ length: count }, (_, i) => i + 1);
+	}
+
+	private extractErrorLine(errorMessage: string, text: string): number | null {
+		if (!errorMessage || !text) return null;
+
+		// Format: "Unexpected token } in JSON at position 123"
+		const positionMatch = errorMessage.match(/at position (\d+)/);
+		if (positionMatch && positionMatch[1]) {
+			const position = parseInt(positionMatch[1], 10);
+			const textUpToError = text.substring(0, position);
+			return textUpToError.split('\n').length;
+		}
+
+		// Format: "Unexpected token 'a', ... at line 4 column 5"
+		const lineMatch = errorMessage.match(/at line (\d+)/);
+		if (lineMatch && lineMatch[1]) {
+			return parseInt(lineMatch[1], 10);
+		}
+
+		return null;
 	}
 
 	ngOnInit() {
@@ -141,6 +162,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 		if (!text.trim()) {
 			this.isValid = true;
 			this.error = null;
+			this.errorLine = null;
 			this.errorChange.emit(null);
 			return true;
 		}
@@ -148,11 +170,13 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			JSON.parse(text);
 			this.isValid = true;
 			this.error = null;
+			this.errorLine = null;
 			this.errorChange.emit(null);
 			return true;
 		} catch (err: any) {
 			this.isValid = false;
 			this.error = err.message || 'Invalid JSON';
+			this.errorLine = this.extractErrorLine(this.error || '', text);
 			this.errorChange.emit(this.error);
 			return false;
 		}

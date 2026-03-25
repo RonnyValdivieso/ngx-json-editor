@@ -35,7 +35,12 @@
 	<div class="nje-body">
 		<!-- Line numbers gutter -->
 		<div class="nje-gutter" #gutterEl>
-			<div class="nje-gutter__line" *ngFor="let num of lineNumbers">{{ num }}</div>
+			<div class="nje-gutter__line" 
+				 *ngFor="let num of lineNumbers"
+				 [class.nje-gutter__line--error]="num === errorLine"
+				 [title]="num === errorLine ? error : ''">
+				 {{ num }}
+			</div>
 		</div>
 
 		<!-- Editor area -->

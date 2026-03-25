@@ -118,6 +118,13 @@
 	text-align: right;
 	padding-right: 12px;
 	height: calc(var(--nje-font-size) * var(--nje-line-height));
+
+	&--error {
+		color: var(--nje-badge-error-text);
+		background-color: var(--nje-badge-error-bg);
+		font-weight: bold;
+		border-radius: 2px;
+	}
 }
 
 /* ---- Editor area wrapper ---- */
