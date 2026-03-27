@@ -15,6 +15,8 @@ export interface JsonEditorLabels {
 	noResults?: string;
 	searchPlaceholder?: string;
 	of?: string;
+	foldAll?: string;
+	unfoldAll?: string;
 }
 
 export const DEFAULT_LABELS: Required<JsonEditorLabels> = {
@@ -34,6 +36,8 @@ export const DEFAULT_LABELS: Required<JsonEditorLabels> = {
 	noResults: 'No results',
 	searchPlaceholder: 'Search in JSON...',
 	of: 'of',
+	foldAll: 'Fold all',
+	unfoldAll: 'Unfold all',
 };
 
 export interface JsonEditorConfig {
@@ -46,6 +50,8 @@ export interface JsonEditorConfig {
 		download?: boolean;
 		reset?: boolean;
 		load?: boolean;
+		codeFolding?: boolean;
 	};
+	codeFolding?: boolean;
 	labels?: JsonEditorLabels;
 }

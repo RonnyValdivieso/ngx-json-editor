@@ -5,6 +5,7 @@ import { JsonSearchComponent } from './json-search/json-search.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { JsonEditorControlsComponent } from './json-editor-controls/json-editor-controls.component';
 import { JsonEditorConfig, JsonEditorLabels, DEFAULT_LABELS } from './models/json-editor-config';
+import { JsonFoldingService, FoldState, FoldRegion } from './json-folding.service';
 
 @Component({
 	selector: 'ngx-json-editor',
@@ -21,7 +22,7 @@ import { JsonEditorConfig, JsonEditorLabels, DEFAULT_LABELS } from './models/jso
 	]
 })
 export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
-	jsonArea = viewChild<ElementRef<HTMLTextAreaElement>>('jsonArea');
+	codeEditor = viewChild<ElementRef<HTMLDivElement>>('codeEditor');
 	highlightOverlay = viewChild<ElementRef<HTMLDivElement>>('highlightOverlay');
 	gutterEl = viewChild<ElementRef<HTMLDivElement>>('gutterEl');
 	jsonSearchComponent = viewChild<JsonSearchComponent>(JsonSearchComponent);
@@ -45,12 +46,18 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	currentMatchIndex: number = 0;
 	private matchPositions: Array<{ start: number; end: number }> = [];
 
+	// Code Folding state
+	foldStates: FoldState[] = [];
+	foldableLines: Set<number> = new Set();
+
 	private onChange: any = () => {};
 	private onTouch: any = () => {};
+	private isRendering = false;
 
 	constructor(
 		private sanitizer: DomSanitizer,
-		private cdr: ChangeDetectorRef
+		private cdr: ChangeDetectorRef,
+		private foldingService: JsonFoldingService
 	) {
 		effect(() => {
 			const d = this.data();
@@ -74,7 +81,6 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	private extractErrorLine(errorMessage: string, text: string): number | null {
 		if (!errorMessage || !text) return null;
 
-		// Format 1: "at position 123" (traditional Chrome/Node)
 		const positionMatch = errorMessage.match(/position (\d+)/i);
 		if (positionMatch && positionMatch[1]) {
 			const position = parseInt(positionMatch[1], 10);
@@ -82,13 +88,11 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			return textUpToError.split('\n').length;
 		}
 
-		// Format 2: "at line 4" or "(line 4 column 5)" (Firefox, newer environments)
 		const lineMatch = errorMessage.match(/line (\d+)/i);
 		if (lineMatch && lineMatch[1]) {
 			return parseInt(lineMatch[1], 10);
 		}
 
-		// Fallback: Trailing comma detection for Chrome/V8 where position is sometimes omitted in the message
 		if (errorMessage.toLowerCase().includes("unexpected token ']'") || 
 			errorMessage.toLowerCase().includes("unexpected token '}'")) {
 			const trailingCommaMatch = text.match(/,\s*[\]}]/);
@@ -104,10 +108,12 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	ngOnInit() {
 		this.jsonText = this.initialValue();
 		this.validateJson(this.jsonText);
+		this.updateFoldableLines();
 	}
 
 	ngAfterViewInit(): void {
 		window.addEventListener('keydown', this.onGlobalKeydown);
+		this.renderEditor();
 	}
 
 	ngOnDestroy(): void {
@@ -137,6 +143,8 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 		if (this.jsonText !== valueToSet) {
 			this.jsonText = valueToSet;
 			this.validateJson(this.jsonText);
+			this.updateFoldableLines();
+			this.renderEditor();
 			this.cdr.markForCheck();
 		}
 	}
@@ -198,17 +206,77 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 		}
 	}
 
-	onJsonTextChange(value: string) {
-		this.jsonText = value;
-		this.emitValue(value);
+	// ─── Contenteditable rendering ──────────────────────────────
+
+	renderEditor() {
+		const editor = this.codeEditor()?.nativeElement;
+		if (!editor) return;
+
+		this.isRendering = true;
+		const lines = this.jsonText.split('\n');
+		const htmlParts = lines.map((line, index) => {
+			const lineNumber = index + 1;
+			let escaped = this.escapeHtml(line);
+
+			// Replace fold placeholder text with styled badge
+			const fold = this.foldStates.find(f => f.startLine === lineNumber);
+			if (fold) {
+				const escapedPlaceholder = this.escapeHtml(fold.placeholder);
+				escaped = escaped.replace(
+					escapedPlaceholder,
+					`<span class="nje-fold-badge" contenteditable="false">${escapedPlaceholder}</span>`
+				);
+			}
+
+			return escaped;
+		});
+
+		editor.innerHTML = htmlParts.join('\n');
+		this.isRendering = false;
+	}
+
+	private escapeHtml(text: string): string {
+		return text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;');
+	}
+
+	// ─── Input handling ──────────────────────────────────────────
+
+	onEditorInput() {
+		if (this.isRendering) return;
+
+		const editor = this.codeEditor()?.nativeElement;
+		if (!editor) return;
+
+		let text = editor.innerText;
+
+		// Restore folded content if there are active folds
+		if (this.foldStates.length > 0) {
+			for (const fold of this.foldStates) {
+				const openBracket = fold.placeholder.charAt(0) === '{' ? '{' : '[';
+				const replacement = openBracket + '\n' + fold.originalContent;
+				text = text.replace(fold.placeholder, replacement);
+			}
+			this.foldStates = [];
+		}
+
+		this.jsonText = text;
+		this.updateFoldableLines();
+		this.emitValue(text);
 	}
 
 	formatJson() {
+		this.ensureUnfolded();
 		if (!this.jsonText.trim()) return;
 		try {
 			const parsed = JSON.parse(this.jsonText);
 			const formatted = JSON.stringify(parsed, null, 2);
 			this.jsonText = formatted;
+			this.updateFoldableLines();
+			this.renderEditor();
 			this.emitValue(this.jsonText);
 		} catch {
 			this.error = 'JSON contains syntax errors';
@@ -218,11 +286,14 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	}
 
 	minifyJson() {
+		this.ensureUnfolded();
 		if (!this.jsonText.trim()) return;
 		try {
 			const parsed = JSON.parse(this.jsonText);
 			const minified = JSON.stringify(parsed);
 			this.jsonText = minified;
+			this.updateFoldableLines();
+			this.renderEditor();
 			this.emitValue(this.jsonText);
 		} catch {
 			this.error = 'JSON contains syntax errors';
@@ -254,6 +325,8 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 		reader.onload = (e: any) => {
 			const content = e.target?.result as string;
 			this.jsonText = content;
+			this.updateFoldableLines();
+			this.renderEditor();
 			this.emitValue(content);
 		};
 		reader.readAsText(file);
@@ -262,107 +335,134 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 
 	resetEditor() {
 		this.jsonText = this.initialValue();
+		this.foldStates = [];
+		this.updateFoldableLines();
+		this.renderEditor();
 		this.emitValue(this.jsonText);
 	}
 
+	// ─── Key handling (Selection API for contenteditable) ─────────
+
 	handleKeyDown(event: KeyboardEvent) {
-		const textarea = this.jsonArea()?.nativeElement;
-		if (!textarea) return;
+		const editor = this.codeEditor()?.nativeElement;
+		if (!editor) return;
 
 		if (event.key === 'Tab') {
 			event.preventDefault();
-			const start = textarea.selectionStart;
-			const text = textarea.value;
+			const sel = window.getSelection();
+			if (!sel || !sel.rangeCount) return;
 
 			if (event.shiftKey) {
 				// Shift + Tab (Un-indent)
-				const textBefore = text.substring(0, start);
+				const { textBefore } = this.getEditorCursorContext(editor, sel);
+				const fullText = editor.innerText;
 				const lastNewline = textBefore.lastIndexOf('\n');
 				const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
-				const currentLine = text.substring(lineStart, text.indexOf('\n', lineStart) === -1 ? text.length : text.indexOf('\n', lineStart));
+				const lineEnd = fullText.indexOf('\n', lineStart);
+				const currentLine = fullText.substring(lineStart, lineEnd === -1 ? fullText.length : lineEnd);
 
 				if (currentLine.startsWith('  ')) {
-					// Select the 2 spaces and replace with empty string
-					this.replaceSelection(textarea, '', 0, [lineStart, lineStart + 2]);
-					// Restore cursor position, shifted back by 2
-					const newPos = Math.max(lineStart, start - 2);
-					textarea.setSelectionRange(newPos, newPos);
-					this.updateUiAfterManualChange();
+					// Remove 2 leading spaces by replacing full text
+					const newText = fullText.substring(0, lineStart) + currentLine.substring(2) + fullText.substring(lineEnd === -1 ? fullText.length : lineEnd);
+					this.jsonText = newText;
+					if (this.foldStates.length > 0) this.foldStates = [];
+					this.updateFoldableLines();
+					this.renderEditor();
+					this.emitValue(newText);
+					// Restore cursor
+					const newPos = Math.max(lineStart, textBefore.length - 2);
+					this.setCursorByOffset(editor, newPos);
 				}
 			} else {
 				// Tab (Indent)
-				this.replaceSelection(textarea, '  ');
-				this.updateUiAfterManualChange();
+				document.execCommand('insertText', false, '  ');
+				this.onEditorInput();
 			}
 		} else if (event.key === 'Enter' || event.key === 'NumpadEnter') {
 			event.preventDefault();
-			const start = textarea.selectionStart;
-			const text = textarea.value;
-			const textBefore = text.substring(0, start);
+			const sel = window.getSelection();
+			if (!sel || !sel.rangeCount) return;
+
+			const { textBefore, textAfter } = this.getEditorCursorContext(editor, sel);
 			const lines = textBefore.split('\n');
 			const currentLine = lines[lines.length - 1];
 			const indentation = currentLine.match(/^\s*/)?.[0] || '';
 
-			// Ignore spaces and tabs, but NOT newlines
 			const charBefore = textBefore.replace(/[ \t]+$/, '').slice(-1);
-			const textAfter = text.substring(textarea.selectionEnd);
 			const charAfter = textAfter.replace(/^[ \t]+/, '').charAt(0);
 
 			let insertText = '\n' + indentation;
-			let cursorOffset: number | undefined;
+			let needsBlockExpansion = false;
 
 			if (charBefore === '{' || charBefore === '[') {
 				insertText += '  ';
-				// Expand block if breaking between {} or []
 				if ((charBefore === '{' && charAfter === '}') || (charBefore === '[' && charAfter === ']')) {
-					const totalInsert = insertText + '\n' + indentation;
-					cursorOffset = insertText.length;
-					insertText = totalInsert;
+					needsBlockExpansion = true;
 				}
 			}
 
-			this.replaceSelection(textarea, insertText, cursorOffset);
-			this.updateUiAfterManualChange();
+			if (needsBlockExpansion) {
+				const cursorInsert = insertText;
+				const fullInsert = cursorInsert + '\n' + indentation;
+				document.execCommand('insertText', false, fullInsert);
+				// Move cursor back to after the indented line
+				const moveBack = '\n'.length + indentation.length;
+				this.moveCursorBack(moveBack);
+			} else {
+				document.execCommand('insertText', false, insertText);
+			}
+			this.onEditorInput();
 		}
 	}
 
-	private replaceSelection(textarea: HTMLTextAreaElement, replacement: string, cursorOffset?: number, selectRange?: [number, number]) {
-		if (selectRange) {
-			textarea.setSelectionRange(selectRange[0], selectRange[1]);
-		}
-
-		// Try to use execCommand to preserve undo stack
-		const success = document.execCommand('insertText', false, replacement);
-
-		if (!success) {
-			// Fallback for environments where execCommand is not supported (e.g. some tests)
-			const start = textarea.selectionStart;
-			const end = textarea.selectionEnd;
-			const val = textarea.value;
-			textarea.value = val.substring(0, start) + replacement + val.substring(end);
-			textarea.selectionStart = textarea.selectionEnd = start + (cursorOffset ?? replacement.length);
-		} else if (cursorOffset !== undefined) {
-			// If we used execCommand but need to adjust cursor (like block expansion)
-			const currentStart = textarea.selectionStart;
-			const newPos = currentStart - (replacement.length - cursorOffset);
-			textarea.setSelectionRange(newPos, newPos);
-		}
+	private getEditorCursorContext(editor: HTMLElement, sel: Selection): { textBefore: string; textAfter: string } {
+		const range = sel.getRangeAt(0);
+		const preRange = document.createRange();
+		preRange.selectNodeContents(editor);
+		preRange.setEnd(range.startContainer, range.startOffset);
+		const textBefore = preRange.toString();
+		const fullText = editor.innerText;
+		const textAfter = fullText.substring(textBefore.length);
+		return { textBefore, textAfter };
 	}
 
-	private updateUiAfterManualChange() {
-		const textarea = this.jsonArea()?.nativeElement;
-		if (!textarea) return;
+	private moveCursorBack(chars: number) {
+		const sel = window.getSelection();
+		if (!sel || !sel.rangeCount) return;
+		const editor = this.codeEditor()?.nativeElement;
+		if (!editor) return;
 
-		const newValue = textarea.value;
-		this.jsonText = newValue;
-		this.emitValue(newValue);
+		// Get current offset in full text
+		const range = sel.getRangeAt(0);
+		const preRange = document.createRange();
+		preRange.selectNodeContents(editor);
+		preRange.setEnd(range.startContainer, range.startOffset);
+		const currentPos = preRange.toString().length;
 
-		// Force change detection and scroll sync
-		this.cdr.detectChanges();
-		this.syncScroll();
+		this.setCursorByOffset(editor, currentPos - chars);
+	}
+
+	private setCursorByOffset(editor: HTMLElement, offset: number) {
+		const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+		let remaining = offset;
+		let node: Text | null;
+
+		while ((node = walker.nextNode() as Text)) {
+			if (remaining <= node.length) {
+				const range = document.createRange();
+				range.setStart(node, remaining);
+				range.collapse(true);
+				const sel = window.getSelection();
+				sel?.removeAllRanges();
+				sel?.addRange(range);
+				return;
+			}
+			remaining -= node.length;
+		}
 	}
 
 	sortKeysAlphabetically() {
+		this.ensureUnfolded();
 		if (!this.jsonText.trim()) return;
 		try {
 			const parsed = JSON.parse(this.jsonText);
@@ -382,6 +482,8 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			const sortedJson = sortObjectKeys(parsed);
 			const formatted = JSON.stringify(sortedJson, null, 2);
 			this.jsonText = formatted;
+			this.updateFoldableLines();
+			this.renderEditor();
 			this.emitValue(this.jsonText);
 		} catch {
 			this.error = 'JSON contains syntax errors';
@@ -412,7 +514,7 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			this.totalMatches = 0;
 			this.currentMatchIndex = 0;
 			this.matchPositions = [];
-			setTimeout(() => this.jsonArea()?.nativeElement?.focus(), 0);
+			setTimeout(() => this.codeEditor()?.nativeElement?.focus(), 0);
 		} else {
 			setTimeout(() => this.jsonSearchComponent()?.focus(), 0);
 			setTimeout(() => this.syncScroll(), 0);
@@ -420,12 +522,13 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	}
 
 	syncScroll(event?: Event) {
-		if (this.highlightOverlay() && this.jsonArea()) {
-			this.highlightOverlay()!.nativeElement.scrollTop = this.jsonArea()!.nativeElement.scrollTop;
-			this.highlightOverlay()!.nativeElement.scrollLeft = this.jsonArea()!.nativeElement.scrollLeft;
+		const editor = this.codeEditor()?.nativeElement;
+		if (this.highlightOverlay() && editor) {
+			this.highlightOverlay()!.nativeElement.scrollTop = editor.scrollTop;
+			this.highlightOverlay()!.nativeElement.scrollLeft = editor.scrollLeft;
 		}
-		if (this.gutterEl() && this.jsonArea()) {
-			this.gutterEl()!.nativeElement.scrollTop = this.jsonArea()!.nativeElement.scrollTop;
+		if (this.gutterEl() && editor) {
+			this.gutterEl()!.nativeElement.scrollTop = editor.scrollTop;
 		}
 	}
 
@@ -462,31 +565,129 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 		}
 		this.totalMatches = this.matchPositions.length;
 		this.currentMatchIndex = this.totalMatches > 0 ? 0 : 0;
-		if (this.totalMatches > 0) this.selectMatch(0);
+		if (this.totalMatches > 0) this.scrollToMatch(0);
 	}
 
 	goToNextMatch() {
 		if (this.totalMatches === 0) return;
 		this.currentMatchIndex = (this.currentMatchIndex + 1) % this.totalMatches;
-		this.selectMatch(this.currentMatchIndex);
+		this.scrollToMatch(this.currentMatchIndex);
 	}
 
 	goToPreviousMatch() {
 		if (this.totalMatches === 0) return;
 		this.currentMatchIndex = (this.currentMatchIndex - 1 + this.totalMatches) % this.totalMatches;
-		this.selectMatch(this.currentMatchIndex);
+		this.scrollToMatch(this.currentMatchIndex);
 	}
 
-	private selectMatch(index: number) {
+	private scrollToMatch(index: number) {
 		const pos = this.matchPositions[index];
 		if (!pos) return;
-		const textarea = this.jsonArea()?.nativeElement;
-		if (!textarea) return;
-		textarea.selectionStart = pos.start;
-		textarea.selectionEnd = pos.end;
+		const editor = this.codeEditor()?.nativeElement;
+		if (!editor) return;
 		const before = this.jsonText.substring(0, pos.start);
 		const line = before.split('\n').length;
 		const lineHeight = 20;
-		textarea.scrollTop = Math.max(0, (line - 5) * lineHeight);
+		editor.scrollTop = Math.max(0, (line - 5) * lineHeight);
+	}
+
+	// ─── Code Folding ──────────────────────────────────────────
+
+	get codeFoldingEnabled(): boolean {
+		return this.config()?.codeFolding !== false;
+	}
+
+	get hasFolds(): boolean {
+		return this.foldStates.length > 0;
+	}
+
+	isFoldableLine(lineNumber: number): boolean {
+		return this.codeFoldingEnabled && this.foldableLines.has(lineNumber);
+	}
+
+	isFoldedLine(lineNumber: number): boolean {
+		return this.foldingService.isFolded(this.foldStates, lineNumber);
+	}
+
+	toggleFold(lineNumber: number) {
+		if (this.isFoldedLine(lineNumber)) {
+			const result = this.foldingService.unfoldRegion(this.jsonText, this.foldStates, lineNumber);
+			this.jsonText = result.text;
+			this.foldStates = result.folds;
+		} else {
+			const result = this.foldingService.foldRegion(this.jsonText, this.foldStates, lineNumber);
+			this.jsonText = result.text;
+			this.foldStates = result.folds;
+		}
+		this.updateFoldableLines();
+		this.renderEditor();
+		this.cdr.detectChanges();
+		this.syncScroll();
+	}
+
+	foldAll() {
+		if (!this.codeFoldingEnabled) return;
+		const regions = this.foldingService.findFoldableRegions(this.jsonText);
+		const topLevel = this.getTopLevelRegions(regions);
+		let text = this.jsonText;
+		let folds = [...this.foldStates];
+
+		const sorted = [...topLevel].sort((a, b) => b.startLine - a.startLine);
+		for (const region of sorted) {
+			if (!this.foldingService.isFolded(folds, region.startLine)) {
+				const result = this.foldingService.foldRegion(text, folds, region.startLine);
+				text = result.text;
+				folds = result.folds;
+			}
+		}
+
+		this.jsonText = text;
+		this.foldStates = folds;
+		this.updateFoldableLines();
+		this.renderEditor();
+		this.cdr.detectChanges();
+		this.syncScroll();
+	}
+
+	unfoldAllRegions() {
+		const result = this.foldingService.unfoldAll(this.jsonText, this.foldStates);
+		this.jsonText = result.text;
+		this.foldStates = result.folds;
+		this.updateFoldableLines();
+		this.renderEditor();
+		this.cdr.detectChanges();
+		this.syncScroll();
+	}
+
+	private updateFoldableLines() {
+		if (!this.codeFoldingEnabled || !this.jsonText) {
+			this.foldableLines = new Set();
+			return;
+		}
+		const regions = this.foldingService.findFoldableRegions(this.jsonText);
+		this.foldableLines = new Set(regions.map(r => r.startLine));
+
+		for (const fold of this.foldStates) {
+			this.foldableLines.add(fold.startLine);
+		}
+	}
+
+	private ensureUnfolded() {
+		if (this.foldStates.length > 0) {
+			const result = this.foldingService.unfoldAll(this.jsonText, this.foldStates);
+			this.jsonText = result.text;
+			this.foldStates = result.folds;
+			this.updateFoldableLines();
+		}
+	}
+
+	private getTopLevelRegions(regions: FoldRegion[]): FoldRegion[] {
+		return regions.filter(r => {
+			return !regions.some(other =>
+				other !== r &&
+				other.startLine < r.startLine &&
+				other.endLine > r.endLine
+			);
+		});
 	}
 }

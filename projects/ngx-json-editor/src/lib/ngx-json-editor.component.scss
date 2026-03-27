@@ -36,11 +36,18 @@
 	--nje-match: #fde047;
 	--nje-match-active: #f97316;
 
-	/* Editor area */
-	--nje-editor-height: 400px;
+	/* Editor height */
+	--nje-editor-height: 600px;
+
+	/* Body/gutter scroll sync */
+	--nje-body-max-height: var(--nje-editor-height);
 
 	/* Error state */
 	--nje-error-bg: #fef2f2;
+
+	/* Fold buttons */
+	--nje-fold-btn-color: #94a3b8;
+	--nje-fold-btn-hover: #6366f1;
 
 	display: block;
 	font-family: var(--nje-font-sans);
@@ -106,6 +113,7 @@
 	border-right: 1px solid var(--nje-border);
 	padding: 12px 0;
 	overflow: hidden;
+	max-height: var(--nje-editor-height);
 	user-select: none;
 	flex-shrink: 0;
 }
@@ -116,14 +124,47 @@
 	line-height: var(--nje-line-height);
 	color: var(--nje-gutter-text);
 	text-align: right;
-	padding-right: 12px;
+	padding-right: 8px;
 	height: calc(var(--nje-font-size) * var(--nje-line-height));
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 2px;
 
 	&--error {
 		color: var(--nje-badge-error-text);
 		background-color: var(--nje-badge-error-bg);
 		font-weight: bold;
 		border-radius: 2px;
+	}
+}
+
+.nje-gutter__num {
+	min-width: 1.5em;
+	text-align: right;
+}
+
+.nje-gutter__fold-btn {
+	background: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+	font-size: 8px;
+	line-height: 1;
+	color: var(--nje-fold-btn-color);
+	width: 12px;
+	height: 12px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 2px;
+	transition: color 0.15s, background-color 0.15s;
+	flex-shrink: 0;
+
+	&:hover {
+		color: var(--nje-fold-btn-hover);
+		background-color: var(--nje-accent-light);
 	}
 }
 
@@ -134,8 +175,8 @@
 	min-width: 0;
 }
 
-/* ---- Shared layer styles (textarea + highlight overlay) ---- */
-.nje-textarea,
+/* ---- Shared layer styles (code editor + highlight overlay) ---- */
+.nje-code,
 .nje-highlight-overlay {
 	font-family: var(--nje-font-mono);
 	font-size: var(--nje-font-size);
@@ -144,7 +185,7 @@
 	margin: 0;
 	border: none;
 	width: 100%;
-	height: var(--nje-editor-height);
+	min-height: var(--nje-editor-height);
 	box-sizing: border-box;
 	display: block;
 	white-space: pre-wrap;
@@ -152,26 +193,49 @@
 	tab-size: 2;
 }
 
-.nje-textarea {
+.nje-code {
 	background: transparent;
 	color: var(--nje-text);
 	outline: none;
-	resize: none;
 	position: relative;
 	z-index: 2;
-	overflow: auto;
+	overflow-y: auto;
+	max-height: var(--nje-editor-height);
 }
 
-.nje-textarea::placeholder {
+.nje-code:empty::before {
+	content: attr(data-placeholder);
 	color: var(--nje-text-muted);
+	pointer-events: none;
 }
 
-.nje-textarea:focus {
+.nje-code:focus {
 	box-shadow: inset 0 0 0 2px var(--nje-accent-light);
 }
 
-.nje-textarea--error {
+.nje-code--error {
 	background: var(--nje-error-bg);
+}
+
+/* Transparent text during search so overlay shows through */
+.nje-code--search {
+	color: transparent;
+	caret-color: var(--nje-text);
+}
+
+/* ---- Fold badge (inline styled placeholder for folded regions) ---- */
+.nje-fold-badge {
+	display: inline;
+	background: var(--nje-accent-light);
+	color: var(--nje-accent);
+	font-size: 0.85em;
+	padding: 1px 6px;
+	border-radius: 4px;
+	border: 1px solid var(--nje-border);
+	font-weight: 500;
+	cursor: default;
+	user-select: none;
+	white-space: nowrap;
 }
 
 /* ---- Highlight overlay (for search matches) ---- */

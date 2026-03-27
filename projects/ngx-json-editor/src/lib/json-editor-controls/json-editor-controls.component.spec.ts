@@ -44,8 +44,8 @@ describe('JsonEditorControlsComponent', () => {
 
 	it('should display all buttons by default', () => {
 		const buttons = fixture.nativeElement.querySelectorAll('.nje-controls__btn');
-		// 8 buttons: format, minify, sort, search, copy, download, upload, reset
-		expect(buttons.length).toBe(8);
+		// 10 buttons: format, minify, sort, search, foldAll, unfoldAll, copy, download, upload, reset
+		expect(buttons.length).toBe(10);
 	});
 
 	it('should have correct tooltip titles from labels', () => {
@@ -59,5 +59,7 @@ describe('JsonEditorControlsComponent', () => {
 		expect(titles).toContain('Download');
 		expect(titles).toContain('Upload');
 		expect(titles).toContain('Reset');
+		expect(titles).toContain('Fold all');
+		expect(titles).toContain('Unfold all');
 	});
 });

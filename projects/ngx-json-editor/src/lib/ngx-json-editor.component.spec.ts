@@ -65,28 +65,16 @@ describe('NgxJsonEditorComponent', () => {
 		const labels = component.labels;
 		expect(labels.format).toBe('Formatear');
 		expect(labels.valid).toBe('Válido');
-		// Non-overridden labels should still be defaults
 		expect(labels.copy).toBe('Copy');
 	});
 
-	it('should not steal focus when searching', () => {
-		component.jsonText = JSON.stringify({ test: 'value' });
-		component.showSearch = true;
+	it('should render content in the contenteditable editor', async () => {
+		component.jsonText = '{"test": 1}';
+		component.renderEditor();
 		fixture.detectChanges();
-
-		const input = document.createElement('input');
-		document.body.appendChild(input);
-		input.focus();
-		expect(document.activeElement).toBe(input);
-
-		component.onSearchTermChange('test');
-
-		expect(document.activeElement).toBe(input);
-
-		const textarea = component.jsonArea()!.nativeElement;
-		expect(textarea.selectionStart).not.toEqual(textarea.selectionEnd);
-
-		document.body.removeChild(input);
+		await fixture.whenStable();
+		const editor = component.codeEditor()!.nativeElement;
+		expect(editor.innerText).toContain('"test"');
 	});
 
 	it('should highlight the active match differently', () => {
@@ -104,16 +92,17 @@ describe('NgxJsonEditorComponent', () => {
 		expect(inactiveMatches?.length).toBe(2);
 	});
 
-	it('should sync scroll from textarea to overlay', (done) => {
+	it('should sync scroll from editor to overlay', (done) => {
 		component.showSearch = true;
 		component.searchTerm = 'key';
 		const largeJson = JSON.stringify(Array.from({ length: 100 }, (_, i) => ({ key: `value ${i}` })), null, 2);
 
 		fixture.componentRef.setInput('initialValue', largeJson);
 		component.ngOnInit();
+		component.renderEditor();
 		fixture.detectChanges();
 
-		const textarea = component.jsonArea()!.nativeElement;
+		const editor = component.codeEditor()!.nativeElement;
 		const overlay = component.highlightOverlay()?.nativeElement;
 
 		expect(overlay).toBeDefined();
@@ -122,19 +111,19 @@ describe('NgxJsonEditorComponent', () => {
 			return;
 		}
 
-		textarea.style.height = '100px';
-		textarea.style.display = 'block';
+		editor.style.height = '100px';
+		editor.style.display = 'block';
 		overlay.style.height = '100px';
 		overlay.style.display = 'block';
 
 		setTimeout(() => {
-			textarea.scrollTop = 100;
-			expect(textarea.scrollTop).toBeGreaterThan(0);
+			editor.scrollTop = 100;
+			expect(editor.scrollTop).toBeGreaterThan(0);
 
 			component.syncScroll();
 
-			expect(overlay.scrollTop).toBe(textarea.scrollTop);
-			expect(overlay.scrollLeft).toBe(textarea.scrollLeft);
+			expect(overlay.scrollTop).toBe(editor.scrollTop);
+			expect(overlay.scrollLeft).toBe(editor.scrollLeft);
 
 			done();
 		}, 100);
@@ -164,62 +153,52 @@ describe('NgxJsonEditorComponent', () => {
 		expect(hasFormat).toBeFalse();
 	});
 
-	it('should auto-indent on Enter', async () => {
-		const textarea = component.jsonArea()!.nativeElement;
-		component.jsonText = '  "key": "value"';
-		fixture.detectChanges();
-		await fixture.whenStable();
+	it('should validate JSON and set error state', () => {
+		component.jsonText = '{"valid": true}';
+		expect(component.validateJson(component.jsonText)).toBeTrue();
+		expect(component.isValid).toBeTrue();
+
+		component.jsonText = '{invalid json}';
+		expect(component.validateJson(component.jsonText)).toBeFalse();
+		expect(component.isValid).toBeFalse();
+		expect(component.error).toBeTruthy();
+	});
+
+	it('should format JSON correctly', () => {
+		component.jsonText = '{"a":1,"b":2}';
+		component.formatJson();
+		expect(component.jsonText).toBe('{\n  "a": 1,\n  "b": 2\n}');
+	});
+
+	it('should minify JSON correctly', () => {
+		component.jsonText = '{\n  "a": 1,\n  "b": 2\n}';
+		component.minifyJson();
+		expect(component.jsonText).toBe('{"a":1,"b":2}');
+	});
+
+	it('should render fold badges for folded regions', () => {
+		const json = '{\n  "settings": {\n    "theme": "dark"\n  }\n}';
+		component.jsonText = json;
 		
-		textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+		// Fold the settings object (line 2)
+		const result = (component as any).foldingService.foldRegion(json, [], 2);
+		component.jsonText = result.text;
+		component.foldStates = result.folds;
+		component.renderEditor();
+		fixture.detectChanges();
 
-		const event = new KeyboardEvent('keydown', { key: 'Enter' });
-		component.handleKeyDown(event);
-
-		expect(component.jsonText).toBe('  "key": "value"\n  ');
+		const editor = component.codeEditor()!.nativeElement;
+		const badge = editor.querySelector('.nje-fold-badge');
+		expect(badge).toBeTruthy();
+		expect(badge?.getAttribute('contenteditable')).toBe('false');
 	});
 
-	it('should add extra indentation after {', async () => {
-		const textarea = component.jsonArea()!.nativeElement;
-		component.jsonText = '{';
-		fixture.detectChanges();
-		await fixture.whenStable();
-		
-		textarea.selectionStart = textarea.selectionEnd = 1;
+	it('should use contenteditable div instead of textarea', () => {
+		const editor = component.codeEditor()!.nativeElement;
+		expect(editor.tagName).toBe('DIV');
+		expect(editor.getAttribute('contenteditable')).toBe('true');
 
-		const event = new KeyboardEvent('keydown', { key: 'Enter' });
-		component.handleKeyDown(event);
-
-		expect(component.jsonText).toBe('{\n  ');
-	});
-
-	it('should expand block when Enter between {}', async () => {
-		const textarea = component.jsonArea()!.nativeElement;
-		component.jsonText = '{}';
-		fixture.detectChanges();
-		await fixture.whenStable();
-
-		textarea.focus();
-		textarea.selectionStart = textarea.selectionEnd = 1;
-
-		const event = new KeyboardEvent('keydown', { key: 'Enter' });
-		component.handleKeyDown(event);
-
-		expect(component.jsonText).toBe('{\n  \n}');
-	});
-
-	it('should un-indent with Shift+Tab', async () => {
-		const textarea = component.jsonArea()!.nativeElement;
-		component.jsonText = '  "key": "value"';
-		fixture.detectChanges();
-		await fixture.whenStable();
-
-		textarea.focus();
-		// Set cursor after the spaces
-		textarea.selectionStart = textarea.selectionEnd = 2;
-
-		const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true });
-		component.handleKeyDown(event);
-
-		expect(component.jsonText).toBe('"key": "value"');
+		const textarea = fixture.nativeElement.querySelector('textarea');
+		expect(textarea).toBeNull();
 	});
 });

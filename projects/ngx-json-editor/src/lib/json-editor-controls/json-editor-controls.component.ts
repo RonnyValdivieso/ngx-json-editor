@@ -21,4 +21,8 @@ export class JsonEditorControlsComponent {
 	download = output<void>();
 	reset = output<void>();
 	load = output<Event>();
+	foldAll = output<void>();
+	unfoldAll = output<void>();
+
+	hasFolds = input<boolean>(false);
 }

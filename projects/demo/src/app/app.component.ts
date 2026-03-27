@@ -14,11 +14,33 @@ export class AppComponent {
 	data = `{
   "name": "Ronny",
   "role": "Developer",
-  "skills": ["Angular", "TypeScript", "SCSS"],
+  "skills": [
+    "Angular",
+    "TypeScript",
+    "SCSS",
+    "Node.js"
+  ],
   "settings": {
     "theme": "dark",
-    "notifications": true
-  }
+    "notifications": true,
+    "editor": {
+      "fontSize": 14,
+      "tabSize": 2,
+      "wordWrap": true
+    }
+  },
+  "projects": [
+    {
+      "name": "ngx-json-editor",
+      "stars": 42,
+      "tags": ["angular", "json", "editor"]
+    },
+    {
+      "name": "another-lib",
+      "stars": 15,
+      "tags": ["typescript", "utils"]
+    }
+  ]
 }`;
 
 	editorConfig: JsonEditorConfig = {};

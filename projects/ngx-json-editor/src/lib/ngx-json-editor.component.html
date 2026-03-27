@@ -5,6 +5,7 @@
 			<ngx-json-editor-controls
 				[config]="config()"
 				[labels]="labels"
+				[hasFolds]="hasFolds"
 				(format)="formatJson()"
 				(minify)="minifyJson()"
 				(sort)="sortKeysAlphabetically()"
@@ -12,7 +13,9 @@
 				(copy)="copyToClipboard()"
 				(download)="downloadJson()"
 				(reset)="resetEditor()"
-				(load)="handleFileUpload($event)">
+				(load)="handleFileUpload($event)"
+				(foldAll)="foldAll()"
+				(unfoldAll)="unfoldAllRegions()">
 			</ngx-json-editor-controls>
 			<span class="nje-badge" [class.nje-badge--valid]="isValid" [class.nje-badge--error]="!isValid">
 				{{ isValid ? labels.valid : labels.error }}
@@ -39,7 +42,15 @@
 			<div class="nje-gutter__line" 
 				 [class.nje-gutter__line--error]="num === errorLine"
 				 [title]="num === errorLine ? error : ''">
-				 {{ num }}
+				@if (isFoldableLine(num)) {
+				<button class="nje-gutter__fold-btn"
+					(mousedown)="$event.preventDefault()"
+					(click)="toggleFold(num)"
+					[title]="isFoldedLine(num) ? labels.unfoldAll : labels.foldAll">
+					{{ isFoldedLine(num) ? '▶' : '▼' }}
+				</button>
+				}
+				<span class="nje-gutter__num">{{ num }}</span>
 			</div>
 			}
 		</div>
@@ -52,19 +63,18 @@
 				 [innerHTML]="highlightSearchTerm(jsonText, searchTerm, currentMatchIndex)">
 			</div>
 			}
-			<textarea #jsonArea
-				[(ngModel)]="jsonText"
-				(ngModelChange)="onJsonTextChange($event)"
-				(blur)="onBlur()"
-				(keydown)="handleKeyDown($event)"
-				(scroll)="syncScroll($event)"
-				[placeholder]="labels.placeholder"
-				[disabled]="disabled()"
-				[readonly]="disabled()"
-				[class.nje-textarea--error]="!isValid"
-				class="nje-textarea"
-				spellcheck="false">
-			</textarea>
+			<div #codeEditor
+				 class="nje-code"
+				 [class.nje-code--error]="!isValid"
+				 [class.nje-code--search]="!!searchTerm"
+				 [attr.contenteditable]="disabled() ? 'false' : 'true'"
+				 [attr.data-placeholder]="labels.placeholder"
+				 spellcheck="false"
+				 (input)="onEditorInput()"
+				 (keydown)="handleKeyDown($event)"
+				 (scroll)="syncScroll($event)"
+				 (blur)="onBlur()">
+			</div>
 		</div>
 	</div>
 
