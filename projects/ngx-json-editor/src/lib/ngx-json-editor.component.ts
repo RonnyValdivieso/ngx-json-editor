@@ -516,8 +516,11 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			this.matchPositions = [];
 			setTimeout(() => this.codeEditor()?.nativeElement?.focus(), 0);
 		} else {
-			setTimeout(() => this.jsonSearchComponent()?.focus(), 0);
-			setTimeout(() => this.syncScroll(), 0);
+			this.cdr.detectChanges();
+			setTimeout(() => {
+				this.jsonSearchComponent()?.focus();
+				this.syncScroll();
+			}, 10);
 		}
 	}
 
