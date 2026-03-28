@@ -500,11 +500,8 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 		const regex = new RegExp(`(${escapedTerm})`, 'gi');
 		let count = 0;
 		const html = escaped.replace(regex, (match) => {
-			const isActive = count === activeIndex;
 			count++;
-			const style = isActive
-				? 'background-color: var(--nje-match-active, #f97316); color: white; border-radius: 2px;'
-				: 'background-color: var(--nje-match, #fde047); color: black; border-radius: 2px;';
+			const style = 'background-color: var(--nje-match, #fde047); color: black; border-radius: 2px;';
 			return `<span style="${style}">${match}</span>`;
 		});
 		return this.sanitizer.bypassSecurityTrustHtml(html);
