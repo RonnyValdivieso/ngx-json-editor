@@ -6,6 +6,7 @@
 		"start": "ng serve",
 		"build": "ng build",
 		"build:lib": "ng build ngx-json-editor",
+		"build:demo": "ng build demo",
 		"watch": "ng build --watch --configuration development",
 		"test": "ng test",
 		"publish:dry-run": "npm run build:lib && cd dist/ngx-json-editor && npm pack --dry-run",
