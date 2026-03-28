@@ -240,7 +240,8 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 			.replace(/&/g, '&amp;')
 			.replace(/</g, '&lt;')
 			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;');
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
 	}
 
 	// ─── Input handling ──────────────────────────────────────────
@@ -493,10 +494,12 @@ export class NgxJsonEditorComponent implements AfterViewInit, OnDestroy, Control
 	}
 
 	highlightSearchTerm(text: string, term: string, activeIndex: number = -1): SafeHtml {
-		if (!term) return this.sanitizer.bypassSecurityTrustHtml(text);
-		const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, 'gi');
+		const escaped = this.escapeHtml(text);
+		if (!term) return this.sanitizer.bypassSecurityTrustHtml(escaped);
+		const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const regex = new RegExp(`(${escapedTerm})`, 'gi');
 		let count = 0;
-		const html = text.replace(regex, (match) => {
+		const html = escaped.replace(regex, (match) => {
 			const isActive = count === activeIndex;
 			count++;
 			const style = isActive

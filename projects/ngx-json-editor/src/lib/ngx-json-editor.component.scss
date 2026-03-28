@@ -15,7 +15,7 @@
 	--nje-font-mono: ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Code", "Consolas", "Liberation Mono", Menlo, monospace;
 	--nje-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 	--nje-font-size: 13px;
-	--nje-line-height: 1.6;
+	--nje-line-height: 21px;
 
 	/* Accent */
 	--nje-accent: #6366f1;
@@ -125,7 +125,7 @@
 	color: var(--nje-gutter-text);
 	text-align: right;
 	padding-right: 8px;
-	height: calc(var(--nje-font-size) * var(--nje-line-height));
+	height: var(--nje-line-height);
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
@@ -188,8 +188,8 @@
 	min-height: var(--nje-editor-height);
 	box-sizing: border-box;
 	display: block;
-	white-space: pre-wrap;
-	word-break: break-word;
+	white-space: pre;
+	word-break: normal;
 	tab-size: 2;
 }
 
@@ -199,7 +199,7 @@
 	outline: none;
 	position: relative;
 	z-index: 2;
-	overflow-y: auto;
+	overflow: auto;
 	max-height: var(--nje-editor-height);
 }
 
